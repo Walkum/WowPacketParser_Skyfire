@@ -1,7 +1,6 @@
 using System;
 using WowPacketParser.Enums;
 using WowPacketParser.Misc;
-using Guid = WowPacketParser.Misc.Guid;
 
 namespace WowPacketParser.Parsing.Parsers
 {
@@ -96,31 +95,31 @@ namespace WowPacketParser.Parsing.Parsers
             var criterias = packet.ReadUInt32("Criterias count");
 
             for (var i = 0; i < achievements; ++i)
-                packet.ReadUInt32("Achievement Id", 1, i);
+                packet.ReadUInt32("Achievement Id", i);
 
             for (var i = 0; i < achievements; ++i)
-                packet.ReadPackedTime("Achievement Time", 1, i);
+                packet.ReadPackedTime("Achievement Time", i);
 
             for (var i = 0; i < criterias; ++i)
-                packet.ReadUInt64("Counter", 0, i);
+                packet.ReadUInt64("Counter", i);
 
             for (var i = 0; i < criterias; ++i)
-                packet.ReadUInt32("Criteria Timer 1", 0, i);
+                packet.ReadUInt32("Criteria Timer 1", i);
 
             for (var i = 0; i < criterias; ++i)
-                packet.ReadPackedTime("Criteria Time", 0, i);
+                packet.ReadPackedTime("Criteria Time", i);
 
             for (var i = 0; i < criterias; ++i)
-                packet.ReadGuid("Player GUID", 0, i);
+                packet.ReadGuid("Player GUID", i);
 
             for (var i = 0; i < criterias; ++i)
-                packet.ReadUInt32("Criteria Timer 2", 0, i);
+                packet.ReadUInt32("Criteria Timer 2", i);
 
             for (var i = 0; i < criterias; ++i)
-                packet.ReadBits("Flag", 2, 0, i);
+                packet.ReadBits("Flag", 2, i);
 
             for (var i = 0; i < criterias; ++i)
-                packet.ReadUInt32("Criteria Id", 0, i);
+                packet.ReadUInt32("Criteria Id", i);
         }
 
         [Parser(Opcode.CMSG_QUERY_INSPECT_ACHIEVEMENTS)]
@@ -268,7 +267,7 @@ namespace WowPacketParser.Parsing.Parsers
 
                 packet.WriteLine("[{0}] Criteria Flags: {1}", i, flags[i]);
                 packet.WriteLine("[{0}] Criteria Counter: {1}", i, BitConverter.ToUInt64(counter[i], 0));
-                packet.WriteLine("[{0}] Criteria GUID: {1}", i, new Guid(BitConverter.ToUInt64(guid[i], 0)));
+                packet.WriteGuid("Criteria GUID", guid[i], i);
             }
 
             for (var i = 0; i < achievements; ++i)
@@ -276,6 +275,33 @@ namespace WowPacketParser.Parsing.Parsers
                 packet.ReadUInt32("Achievement Id", i);
                 packet.ReadPackedTime("Achievement Date", i);
             }
+        }
+
+        [Parser(Opcode.SMSG_GUILD_CRITERIA_DATA, ClientVersionBuild.V4_0_6a_13623, ClientVersionBuild.V4_3_4_15595)]
+        public static void HandleGuildCriteriaData(Packet packet)
+        {
+            var criterias = packet.ReadUInt32("Criterias");
+
+            for (var i = 0; i < criterias; ++i)
+                packet.ReadGuid("Player GUID", i);
+
+            for (var i = 0; i < criterias; ++i)
+                packet.ReadUInt32("Criteria Timer 1", i);
+
+            for (var i = 0; i < criterias; ++i)
+                packet.ReadUInt32("Criteria Timer 2", i);
+
+            for (var i = 0; i < criterias; ++i)
+                packet.ReadUInt64("Counter", i);
+            
+            for (var i = 0; i < criterias; ++i)
+                packet.ReadPackedTime("Criteria Time", i);                
+
+            for (var i = 0; i < criterias; ++i)
+                packet.ReadUInt32("Criteria Id", i);
+
+            for (var i = 0; i < criterias; ++i)
+                packet.ReadUInt32("Flag", i);
         }
 
         [Parser(Opcode.SMSG_GUILD_CRITERIA_DATA, ClientVersionBuild.V4_3_4_15595)]
@@ -340,7 +366,7 @@ namespace WowPacketParser.Parsing.Parsers
                 if (counter[i][2] != 0) counter[i][2] ^= packet.ReadByte();
                 if (guid[i][0] != 0) guid[i][0] ^= packet.ReadByte();
 
-                packet.WriteLine("[{0}] Criteria GUID: {1}", i, new Guid(BitConverter.ToUInt64(guid[i], 0)));
+                packet.WriteGuid("Criteria GUID", guid[i], i);
                 packet.WriteLine("[{0}] Criteria counter: {1}", i, BitConverter.ToUInt64(counter[i], 0));
             }
         }

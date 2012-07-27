@@ -148,7 +148,7 @@ namespace WowPacketParser.Parsing.Parsers
             Storage.NpcVendors.Add(guid.GetEntry(), npcVendor, packet.TimeSpan);
         }
 
-        [Parser(Opcode.SMSG_LIST_INVENTORY, ClientVersionBuild.V4_2_2_14545)]
+        [Parser(Opcode.SMSG_LIST_INVENTORY, ClientVersionBuild.V4_2_2_14545, ClientVersionBuild.V4_3_0_15005)]
         public static void HandleVendorInventoryList422(Packet packet)
         {
             var npcVendor = new NpcVendor();
@@ -180,7 +180,8 @@ namespace WowPacketParser.Parsing.Parsers
             if (guidBytes[6] != 0) guidBytes[6] ^= packet.ReadByte();
 
             var guid = new Guid(BitConverter.ToUInt64(guidBytes, 0));
-            packet.WriteLine("GUID: {0}", guid);
+
+            packet.WriteGuid("Guid", guidBytes);
 
             npcVendor.VendorItems = new List<VendorItem>((int)itemCount);
             for (var i = 0; i < itemCount; i++)
@@ -200,6 +201,74 @@ namespace WowPacketParser.Parsing.Parsers
 
                 npcVendor.VendorItems.Add(vendorItem);
             }
+
+            Storage.NpcVendors.Add(guid.GetEntry(), npcVendor, packet.TimeSpan);
+        }
+
+        [Parser(Opcode.SMSG_LIST_INVENTORY, ClientVersionBuild.V4_3_4_15595)]
+        public static void HandleVendorInventoryList434(Packet packet)
+        {
+            var npcVendor = new NpcVendor();
+
+            var guidBytes = new byte[8];
+
+            guidBytes[1] = packet.ReadBit().ToByte();
+            guidBytes[0] = packet.ReadBit().ToByte();
+
+            var itemCount = packet.ReadBits("Item Count", 21);
+
+            guidBytes[3] = packet.ReadBit().ToByte();
+            guidBytes[6] = packet.ReadBit().ToByte();
+            guidBytes[5] = packet.ReadBit().ToByte();
+            guidBytes[2] = packet.ReadBit().ToByte();
+            guidBytes[7] = packet.ReadBit().ToByte();
+
+            var hasExtendedCost = new bool[itemCount];
+            var enabler2 = new bool[itemCount];
+            for (int i = 0; i < itemCount; ++i)
+            {
+                hasExtendedCost[i] = !packet.ReadBit();
+                enabler2[i] = !packet.ReadBit();
+            }
+
+            guidBytes[4] = packet.ReadBit().ToByte();
+
+            npcVendor.VendorItems = new List<VendorItem>((int)itemCount);
+            for (int i = 0; i < itemCount; ++i)
+            {
+                var vendorItem = new VendorItem();
+
+                vendorItem.Slot = packet.ReadUInt32("Item Position", i);
+                packet.ReadInt32("Max Durability", i);
+                if (hasExtendedCost[i])
+                    vendorItem.ExtendedCostId = packet.ReadUInt32("Extended Cost", i);
+                vendorItem.ItemId = (uint)packet.ReadEntryWithName<Int32>(StoreNameType.Item, "Item ID", i);
+                packet.ReadInt32("Type", i); // 1 - item, 2 - currency
+                packet.ReadInt32("Price", i);
+                packet.ReadInt32("Display ID", i);
+                if (enabler2[i])
+                    packet.ReadInt32("Unk Int32 8", i);
+                vendorItem.MaxCount = packet.ReadInt32("Max Count", i);
+                packet.ReadUInt32("Buy Count", i);
+
+                npcVendor.VendorItems.Add(vendorItem);
+            }
+
+            if (guidBytes[5] != 0) guidBytes[5] ^= packet.ReadByte();
+            if (guidBytes[4] != 0) guidBytes[4] ^= packet.ReadByte();
+            if (guidBytes[1] != 0) guidBytes[1] ^= packet.ReadByte();
+            if (guidBytes[0] != 0) guidBytes[0] ^= packet.ReadByte();
+            if (guidBytes[6] != 0) guidBytes[6] ^= packet.ReadByte();
+
+            packet.ReadByte("Unk Byte");
+
+            if (guidBytes[2] != 0) guidBytes[2] ^= packet.ReadByte();
+            if (guidBytes[3] != 0) guidBytes[3] ^= packet.ReadByte();
+            if (guidBytes[7] != 0) guidBytes[7] ^= packet.ReadByte();
+
+
+            var guid = new Guid(BitConverter.ToUInt64(guidBytes, 0));
+            packet.WriteGuid("Guid", guidBytes);
 
             Storage.NpcVendors.Add(guid.GetEntry(), npcVendor, packet.TimeSpan);
         }
@@ -304,6 +373,31 @@ namespace WowPacketParser.Parsing.Parsers
 
             if (packet.Opcode == Opcodes.GetOpcode(Opcode.SMSG_THREAT_REMOVE))
                 packet.ReadPackedGuid("Victim GUID");
+        }
+
+        [Parser(Opcode.CMSG_QUERY_COMPLETION_NPC_RESPONSE)] // 4.3.4
+        public static void HandleQueryCompletionNPCResponse(Packet packet)
+        {
+            var count = packet.ReadBits("Count", 24);
+            for (int i = 0; i < count; ++i)
+                packet.ReadEntryWithName<UInt32>(StoreNameType.Quest, "Quest", i);
+        }
+
+        [Parser(Opcode.SMSG_COMPLETION_NPC_RESPONSE)] // 4.3.4
+        public static void HandleCompletionNPCResponse(Packet packet)
+        {
+            var count = packet.ReadBits("Count", 23);
+            var counts = new uint[count];
+
+            for (int i = 0; i < count; ++i)
+                counts[i] = packet.ReadBits("Count", 24, i);
+
+            for (int i = 0; i < count; ++i)
+            {
+                packet.ReadEntryWithName<UInt32>(StoreNameType.Quest, "Quest", i);
+                for (int j = 0; j < counts[i]; ++j)
+                    packet.ReadEntryWithName<UInt32>(StoreNameType.Unit, "Unit", i, j);
+            }
         }
     }
 }

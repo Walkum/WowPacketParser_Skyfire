@@ -6,6 +6,12 @@ namespace WowPacketParser.Parsing.Parsers
 {
     public static class ReputationHandler
     {
+        [Parser(Opcode.CMSG_RESET_FACTION_CHEAT)]
+        public static void HandleResetFactionCheat(Packet packet)
+        {
+            packet.ReadUInt32("Unk");
+        }
+
         [Parser(Opcode.SMSG_INITIALIZE_FACTIONS)]
         public static void HandleInitializeFactions(Packet packet)
         {
@@ -13,7 +19,7 @@ namespace WowPacketParser.Parsing.Parsers
             for (var i = 0; i < count; i++)
             {
                 packet.ReadEnum<FactionFlag>("Faction Flags", TypeCode.Byte, i);
-                packet.ReadInt32("Faction Standing", i);
+                packet.ReadEnum<ReputationRank>("Faction Standing", TypeCode.UInt32, i);
             }
         }
 
@@ -50,6 +56,13 @@ namespace WowPacketParser.Parsing.Parsers
                 packet.ReadInt32("Faction List Id");
                 packet.ReadInt32("Standing");
             }
+        }
+
+        [Parser(Opcode.CMSG_SET_FACTION_INACTIVE, ClientVersionBuild.V4_3_4_15595)]
+        public static void HandleSetFactionInactive(Packet packet)
+        {
+            packet.ReadUInt32("Faction Id");
+            packet.ReadBoolean("Inactive");
         }
     }
 }

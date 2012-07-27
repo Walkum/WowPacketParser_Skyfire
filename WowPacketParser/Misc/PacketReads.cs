@@ -295,6 +295,13 @@ namespace WowPacketParser.Misc
             return val;
         }
 
+        public string ReadWoWString(string name, uint len, params int[] values)
+        {
+            string val = ReadWoWString((int)len);
+            WriteLine("{0}{1}: {2}", GetIndexString(values), name, val);
+            return val;
+        }
+
         public string ReadCString(string name, params int[] values)
         {
             string val = ReadCString();
@@ -539,14 +546,14 @@ namespace WowPacketParser.Misc
             return 0;
         }
 
-        public string ToGuid(byte[] stream)
+        public string WriteGuid(byte[] stream)
         {
             var val = new Guid(BitConverter.ToUInt64(stream, 0));
             WriteLine("Guid: {0}", val);
             return val.ToString();
         }
 
-        public string ToGuid(string name, byte[] stream, params int[] values)
+        public string WriteGuid(string name, byte[] stream, params int[] values)
         {
             var val = new Guid(BitConverter.ToUInt64(stream, 0));
             WriteLine("{0}{1}: {2}", GetIndexString(values), name, val);

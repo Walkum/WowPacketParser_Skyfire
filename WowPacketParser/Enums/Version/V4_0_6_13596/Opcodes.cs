@@ -56,8 +56,8 @@ namespace WowPacketParser.Enums.Version.V4_0_6_13596
             {Opcode.CMSG_BANKER_ACTIVATE, 0x0E7E0}, // 4.0.6a 13623
             {Opcode.CMSG_BATTLEFIELD_JOIN, 0x0C91}, // 4.0.6a 13623
             {Opcode.CMSG_BATTLEFIELD_LIST, 0x0093}, // 4.0.6a 13623
-            {Opcode.CMSG_BATTLEFIELD_MGR_ENTRY_INVITE_RESPONSE, 0x00005}, // 4.0.6a 13623 (might be 0x00100)
-            {Opcode.CMSG_BATTLEFIELD_MGR_EXIT_REQUEST, 0x08581}, // 4.0.6a 13623 (might be 0x08580)
+            {Opcode.CMSG_BATTLEFIELD_MGR_ENTRY_INVITE_RESPONSE, 0x00100}, // 4.0.6a 13623
+            {Opcode.CMSG_BATTLEFIELD_MGR_EXIT_REQUEST, 0x08580}, // 4.0.6a 13623
             {Opcode.CMSG_BATTLEFIELD_MGR_QUEUE_INVITE_RESPONSE, 0x08108}, // 4.0.6a 13623
             {Opcode.CMSG_BATTLEFIELD_MGR_QUEUE_REQUEST, 0x00611}, // 4.0.6a 13623 (might be 0x0011D)
             {Opcode.CMSG_BATTLEFIELD_REQUEST_SCORE_DATA, 0x00493}, // 4.0.6a 13623
@@ -250,6 +250,7 @@ namespace WowPacketParser.Enums.Version.V4_0_6_13596
             {Opcode.CMSG_GROUP_UNINVITE, 0x04F74}, // 4.0.6a 13623
             {Opcode.CMSG_GROUP_UNINVITE_GUID, 0x0E3C8}, // 4.0.6a 13623
             {Opcode.CMSG_GUILD_ACCEPT, 0x03729}, // 4.0.6a 13623
+            {Opcode.CMSG_GUILD_ACHIEVEMENT_MEMBERS, 0x02509}, // 4.0.6a 13623
             {Opcode.CMSG_GUILD_ADD_RANK, 0x02309}, // 4.0.6a 13623
             {Opcode.CMSG_GUILD_BANKER_ACTIVATE, 0x0FFC4}, // 4.0.6a 13623
             {Opcode.CMSG_GUILD_BANK_BUY_TAB, 0x078AC}, // 4.0.6a 13623
@@ -268,15 +269,19 @@ namespace WowPacketParser.Enums.Version.V4_0_6_13596
             {Opcode.CMSG_GUILD_LEADER, 0x02650}, // 4.0.6a 13623
             {Opcode.CMSG_GUILD_LEAVE, 0x03329}, // 4.0.6a 13623
             {Opcode.CMSG_GUILD_MOTD, 0x0272D}, // 4.0.6a 13623
+            {Opcode.CMSG_GUILD_NEWS_UPDATE_STICKY, 0x0252D}, // 4.0.6a 13623
             {Opcode.CMSG_GUILD_PROMOTE, 0x02109}, // 4.0.6a 13623
             {Opcode.CMSG_GUILD_QUERY, 0x0AFC4}, // 4.0.6a 13623
-            {Opcode.CMSG_GUILD_QUERY_XP, 0x0350D}, // 4.0.6a 13623
+            {Opcode.CMSG_GUILD_QUERY_NEWS, 0x3529}, // 4.0.6a 13623
+            {Opcode.CMSG_GUILD_QUERY_TRADESKILL, 0x02329}, // 4.0.6a 13623
             {Opcode.CMSG_GUILD_RANK, 0x02709}, // 4.0.6a 13623
             {Opcode.CMSG_GUILD_REMOVE, 0x0312D}, // 4.0.6a 13623
+            {Opcode.CMSG_GUILD_REQUEST_MAX_DAILY_XP, 0x0350D}, // 4.0.6a 13623
+            {Opcode.CMSG_GUILD_RANKS, 0x3129}, // 4.0.6a 13623
             {Opcode.CMSG_GUILD_ROSTER, 0x0250D}, // 4.0.6a 13623
+            {Opcode.CMSG_GUILD_SET_ACHIEVEMENT_TRACKING, 0x0310D}, // 4.0.6a 13623
             {Opcode.CMSG_GUILD_SET_NOTE, 0x0232D}, // 4.0.6a 13623
-            {Opcode.CMSG_GUILD_SWITCH_RANK, 0x100A6}, // Unknown opcode ID
-            {Opcode.CMSG_GUILD_UPDATE_PARTY_STATE, 0x02219}, // 4.0.6a 13623
+            {Opcode.CMSG_GUILD_SWITCH_RANK, 0x3309}, // 4.0.6a 13623
             {Opcode.CMSG_HEARTH_AND_RESURRECT, 0x0B6C4}, // 4.0.6a 13623
             {Opcode.CMSG_IGNORE_DIMINISHING_RETURNS_CHEAT, 0x1019D}, // Unknown opcode ID
             {Opcode.CMSG_IGNORE_KNOCKBACK_CHEAT, 0x10126}, // Unknown opcode ID
@@ -317,6 +322,7 @@ namespace WowPacketParser.Enums.Version.V4_0_6_13596
             {Opcode.CMSG_LOAD_SCREEN, 0x08508}, // 4.0.6a 13623
             {Opcode.CMSG_LOGOUT_CANCEL, 0x039E8}, // 4.0.6a 13623
             {Opcode.CMSG_LOGOUT_REQUEST, 0x0A7A8}, // 4.0.6a 13623
+            {Opcode.CMSG_LOG_DISCONNECT, 0x0064C}, // 4.0.6a 13623
             {Opcode.CMSG_LOOT, 0x0FCEC}, // 4.0.6a 13623
             {Opcode.CMSG_LOOT_MASTER_GIVE, 0x03BA4}, // 4.0.6a 13623
             {Opcode.CMSG_LOOT_METHOD, 0x0FCCC}, // 4.0.6a 13623
@@ -412,11 +418,13 @@ namespace WowPacketParser.Enums.Version.V4_0_6_13596
             {Opcode.CMSG_PUSHQUESTTOPARTY, 0x029E8}, // 4.0.6a 13623
             {Opcode.CMSG_QUERY_GUILD_REWARDS, 0x02210}, // 4.0.6a 13623
             {Opcode.CMSG_QUERY_GUILD_XP, 0x03509}, // 4.0.6a 13623
-            {Opcode.CMSG_QUERY_INSPECT_ACHIEVEMENTS, 0x069A0}, // 4.0.6a 13623 (might be 0x028EC)
+            {Opcode.CMSG_QUERY_GUILD_MEMBERS_FOR_RECIPE, 0x0210D}, // 4.0.6a 13623
+            {Opcode.CMSG_QUERY_GUILD_MEMBER_RECIPES, 0x0212D}, // 4.0.6a 13623
+            {Opcode.CMSG_QUERY_INSPECT_ACHIEVEMENTS, 0x028EC}, // 4.0.6a 13623
             {Opcode.CMSG_QUERY_QUESTS_COMPLETED, 0x0FE84}, // 4.0.6a 13623
             {Opcode.CMSG_QUERY_SERVER_BUCK_DATA, 0x101AC}, // Unknown opcode ID
             {Opcode.CMSG_QUERY_TIME, 0x0B1C0}, // 4.0.6a 13623
-            {Opcode.CMSG_QUERY_VEHICLE_STATUS, 0x101F0}, // 4.0.6a 1623 (might be 0x069A0)
+            {Opcode.CMSG_QUERY_VEHICLE_STATUS, 0x069A0}, // 4.0.6a 1623
             {Opcode.CMSG_QUESTGIVER_ACCEPT_QUEST, 0x020C4}, // 4.0.6a 13623
             {Opcode.CMSG_QUESTGIVER_CHOOSE_REWARD, 0x06AC0}, // 4.0.6a 13623
             {Opcode.CMSG_QUESTGIVER_COMPLETE_QUEST, 0x0B5AC}, // 4.0.6a 13623
@@ -446,6 +454,7 @@ namespace WowPacketParser.Enums.Version.V4_0_6_13596
             {Opcode.CMSG_REPOP_REQUEST, 0x0A9E4}, // 4.0.6a 13623
             {Opcode.CMSG_REPORT_PVP_AFK, 0x0E3AC}, // 4.0.6a 13623
             {Opcode.CMSG_REQUEST_ACCOUNT_DATA, 0x0EEAC}, // 4.0.6a 13623
+            {Opcode.CMSG_REQUEST_GUILD_PARTY_STATE, 0x02219}, // 4.0.6a 13623
             {Opcode.CMSG_REQUEST_HOTFIX, 0x08589}, // 4.0.6a 13623 (the client sends this after we send SMSG_HOTFIX_NOTIFY[_BLOP], only sent for the items that the player has in his inventory, that are flagged to be hotfixed)
             {Opcode.CMSG_REQUEST_PARTY_MEMBER_STATS, 0x070C8}, // 4.0.6a 13623
             {Opcode.CMSG_REQUEST_PET_INFO, 0x0EAE4}, // 4.0.6a 13623
@@ -738,7 +747,6 @@ namespace WowPacketParser.Enums.Version.V4_0_6_13596
             {Opcode.SMSG_BINDPOINTUPDATE, 0x0A9A0}, // 4.0.6a 13623
             {Opcode.SMSG_BINDZONEREPLY, 0x0ACAC}, // 4.0.6a 13623
             {Opcode.SMSG_BREAK_TARGET, 0x02488}, // 4.0.6a 13623
-            //{Opcode.SMSG_BUY_BANK_SLOT_RESULT, 0x00000}, // 4.0.6a 13623
             {Opcode.SMSG_BUY_FAILED, 0x06CE8}, // 4.0.6a 13623
             {Opcode.SMSG_BUY_ITEM, 0x069CC}, // 4.0.6a 13623
             {Opcode.SMSG_CALENDAR_ACTION_PENDING, 0x07E8C}, // 4.0.6a 13623 (might be 0x0265E)
@@ -799,7 +807,7 @@ namespace WowPacketParser.Enums.Version.V4_0_6_13596
             {Opcode.SMSG_COMMENTATOR_STATE_CHANGED, 0x0E0E4}, // 4.0.6a 13623
             {Opcode.SMSG_COMPLAIN_RESULT, 0x070CC}, // 4.0.6a 13623
             {Opcode.SMSG_COMPRESSED_ACHIEVEMENT_DATA, 0x0C1B0}, // 4.0.6a 13623
-            {Opcode.SMSG_COMPRESSED_GUILD_ROSTER, 0x101C}, // 4.0.6a 13623
+            {Opcode.SMSG_COMPRESSED_GUILD_ROSTER, 0x9170}, // 4.0.6a 13623
             {Opcode.SMSG_COMPRESSED_MOVES, 0x06FE4}, // 4.0.6a 13623
             {Opcode.SMSG_COMPRESSED_RESPOND_INSPECT_ACHIEVEMENTS, 0x09130}, // 4.0.6a 13623
             {Opcode.SMSG_COMPRESSED_UPDATE_OBJECT, 0x0EAC0}, // 4.0.6a 13623
@@ -861,16 +869,16 @@ namespace WowPacketParser.Enums.Version.V4_0_6_13596
             {Opcode.SMSG_FORCE_FLIGHT_SPEED_CHANGE, 0x0E5CC}, // 4.0.6a 13623
             {Opcode.SMSG_FORCE_MOVE_ROOT, 0x02F88}, // 4.0.6a 13623
             {Opcode.SMSG_FORCE_MOVE_UNROOT, 0x030A0}, // 4.0.6a 13623
-            {Opcode.SMSG_FORCE_PITCH_RATE_CHANGE, 0x0ABA4}, // 4.0.6a 13623 FIXME (MSG_MOVE_SET_PITCH_RATE)
-            {Opcode.SMSG_FORCE_RUN_BACK_SPEED_CHANGE, 0x1002E}, // Unknown opcode ID
+            {Opcode.SMSG_FORCE_PITCH_RATE_CHANGE, 0x0BF8C}, // 4.0.6a 13623
+            {Opcode.SMSG_FORCE_RUN_BACK_SPEED_CHANGE, 0x068E8}, // 4.0.6a 13623
             {Opcode.SMSG_FORCE_RUN_SPEED_CHANGE, 0x0F1CC}, // 4.0.6a 13623
-            {Opcode.SMSG_FORCE_SEND_QUEUED_PACKETS, 0x06EC8}, // 4.0.6a 13623
+            {Opcode.SMSG_FORCE_SEND_QUEUED_PACKETS, 0x0E280}, // 4.0.6a 13623
             {Opcode.SMSG_FORCE_SWIM_BACK_SPEED_CHANGE, 0x002DC}, // 4.0.6a 13623
             {Opcode.SMSG_FORCE_SWIM_SPEED_CHANGE, 0x0F5A0}, // 4.0.6a 13623
             {Opcode.SMSG_FORCE_TURN_RATE_CHANGE, 0x0A3A8}, // 4.0.6a 13623 (might be 0x0375E)
             {Opcode.SMSG_FORCE_WALK_SPEED_CHANGE, 0x068E8}, // 4.0.6a 13623
             {Opcode.SMSG_FRIEND_STATUS, 0x0F68C}, // 4.0.6a 13623
-            {Opcode.SMSG_GAMEOBJECT_CUSTOM_ANIM, 0x036A0}, // 4.0.6a 13623 (might be 0x02E8C)
+            {Opcode.SMSG_GAMEOBJECT_CUSTOM_ANIM, 0x02E8C}, // 4.0.6a 13623 // old one 0x036A0
             {Opcode.SMSG_GAMEOBJECT_DESPAWN_ANIM, 0x0BFA8}, // 4.0.6a 13623
             {Opcode.SMSG_GAMEOBJECT_PAGETEXT, 0x0E5C8}, // 4.0.6a 13623
             {Opcode.SMSG_GAMEOBJECT_QUERY_RESPONSE, 0x0F4E8}, // 4.0.6a 13623
@@ -914,16 +922,15 @@ namespace WowPacketParser.Enums.Version.V4_0_6_13596
             {Opcode.SMSG_GUILD_INVITE, 0x0010C}, // 4.0.6a 13623 (might be 0x0B78C)
             {Opcode.SMSG_GUILD_MAX_DAILY_XP, 0x0441C}, // 4.0.6a 13623
             {Opcode.SMSG_GUILD_NEWS_UPDATE, 0x0485E}, // 4.0.6a 13623
+            {Opcode.SMSG_GUILD_PARTY_STATE_RESPONSE, 0x0450C}, // 4.0.6a 13623
             {Opcode.SMSG_GUILD_QUERY_RESPONSE, 0x03F80}, // 4.0.6a 13623
             {Opcode.SMSG_GUILD_RANK, 0x0411E}, // 4.0.6a 13623
             {Opcode.SMSG_GUILD_RANKS_UPDATE, 0x0004C}, // 4.0.6a 13623
             {Opcode.SMSG_GUILD_REWARDS_LIST, 0x00C4C}, // 4.0.6a 13623
             {Opcode.SMSG_GUILD_ROSTER, 0x04D5C}, // 4.0.6a 13623 (might be 0x038B0)
             {Opcode.SMSG_GUILD_TRADESKILL_UPDATE, 0x0454E}, // 4.0.6a 13623
-            {Opcode.SMSG_GUILD_UPDATE_PARTY_STATE, 0x0450C}, // 4.0.6a 13623
             {Opcode.SMSG_GUILD_UPDATE_ROSTER, 0x0085E}, // 4.0.6a 13623
             {Opcode.SMSG_GUILD_XP, 0x0440E}, // 4.0.6a 13623
-            {Opcode.SMSG_GUILD_XP_LIMIT, 0x0441C}, // 4.0.6a 13623
             {Opcode.SMSG_HEALTH_UPDATE, 0x02AA8}, // 4.0.6a 13623
             {Opcode.SMSG_HIGHEST_THREAT_UPDATE, 0x03F7E}, // 4.0.3a 13329
             {Opcode.SMSG_HOTFIX_INFO, 0x04C1E}, // 4.0.6a 13623 (sent after SMSG_AUTH_RESPONSE)
@@ -964,7 +971,6 @@ namespace WowPacketParser.Enums.Version.V4_0_6_13596
             {Opcode.SMSG_LFG_JOIN_RESULT, 0x0338C}, // 4.0.6a 13623
             {Opcode.SMSG_LFG_LFR_LIST, 0x0768C}, // 4.0.6a 13623
             {Opcode.SMSG_LFG_OFFER_CONTINUE, 0x063EC}, // 4.0.6a 13623
-            {Opcode.SMSG_OPEN_LFG_DUNGEON_FINDER, 0x071EC}, // 4.0.6a 13623
             {Opcode.SMSG_LFG_PARTY_INFO, 0x060A0}, // 4.0.6a 13623
             {Opcode.SMSG_LFG_PLAYER_INFO, 0x0E088}, // 4.0.6a 13623
             {Opcode.SMSG_LFG_PLAYER_REWARD, 0x02C88}, // 4.0.6a 13623
@@ -1043,6 +1049,7 @@ namespace WowPacketParser.Enums.Version.V4_0_6_13596
             {Opcode.SMSG_OFFER_PETITION_ERROR, 0x07DC0}, // 4.0.6a 13623
             {Opcode.SMSG_ON_CANCEL_EXPECTED_RIDE_VEHICLE_AURA, 0x03380}, // 4.0.6a 13623
             {Opcode.SMSG_OPEN_CONTAINER, 0x03FC4}, // 4.0.6a 13623
+            {Opcode.SMSG_OPEN_LFG_DUNGEON_FINDER, 0x071EC}, // 4.0.6a 13623
             {Opcode.SMSG_OVERRIDE_LIGHT, 0x00756}, // 4.0.3a 13329
             {Opcode.SMSG_PAGE_TEXT_QUERY_RESPONSE, 0x0B084}, // 4.0.6a 13623
             {Opcode.SMSG_PARTYKILLLOG, 0x0AB84}, // 4.0.6a 13623
@@ -1111,7 +1118,7 @@ namespace WowPacketParser.Enums.Version.V4_0_6_13596
             {Opcode.SMSG_QUESTUPDATE_FAILED, 0x0E588}, // 4.0.6a 13623
             {Opcode.SMSG_QUESTUPDATE_FAILEDTIMER, 0x0F7CC}, // 4.0.6a 13623
             {Opcode.SMSG_QUEST_CONFIRM_ACCEPT, 0x07C8C}, // 4.0.6a 13623
-            {Opcode.SMSG_QUEST_FORCE_REMOVED, 0x034E8}, // 4.0.6a 13623
+            {Opcode.SMSG_QUEST_FORCE_REMOVE, 0x034E8}, // 4.0.6a 13623
             {Opcode.SMSG_QUEST_NPC_QUERY_RESPONSE, 0x0401C}, // 4.0.6a 13623
             {Opcode.SMSG_QUEST_POI_QUERY_RESPONSE, 0x06AEC}, // 4.0.6a 13623
             {Opcode.SMSG_QUEST_QUERY_RESPONSE, 0x07BA0}, // 4.0.6a 13623
@@ -1198,15 +1205,15 @@ namespace WowPacketParser.Enums.Version.V4_0_6_13596
             {Opcode.SMSG_SPLINE_MOVE_UNSET_FLYING, 0x07688}, // 4.0.6a 13623
             {Opcode.SMSG_SPLINE_MOVE_UNSET_HOVER, 0x1010F}, // Unknown opcode ID
             {Opcode.SMSG_SPLINE_MOVE_WATER_WALK, 0x061C0}, // 4.0.6a 13623
-            {Opcode.SMSG_SPLINE_SET_FLIGHT_BACK_SPEED, 0x0F2EC}, // 4.0.6a 13623
-            {Opcode.SMSG_SPLINE_SET_FLIGHT_SPEED, 0x0E0C0}, // 4.0.6a 13623
-            {Opcode.SMSG_SPLINE_SET_PITCH_RATE, 0x070C4}, // 4.0.6a 13623
-            {Opcode.SMSG_SPLINE_SET_RUN_BACK_SPEED, 0x0E9C0}, // 4.0.6a 13623
-            {Opcode.SMSG_SPLINE_SET_RUN_SPEED, 0x0F9E8}, // 4.0.6a 13623
-            {Opcode.SMSG_SPLINE_SET_SWIM_BACK_SPEED, 0x021C8}, // 4.0.6a 13623
-            {Opcode.SMSG_SPLINE_SET_SWIM_SPEED, 0x0B2C0}, // 4.0.6a 13623
-            {Opcode.SMSG_SPLINE_SET_TURN_RATE, 0x07EAC}, // 4.0.6a 13623
-            {Opcode.SMSG_SPLINE_SET_WALK_SPEED, 0x03EA8}, // 4.0.6a 13623
+            {Opcode.SMSG_SPLINE_MOVE_SET_FLIGHT_BACK_SPEED, 0x0F2EC}, // 4.0.6a 13623
+            {Opcode.SMSG_SPLINE_MOVE_SET_FLIGHT_SPEED, 0x0E0C0}, // 4.0.6a 13623
+            {Opcode.SMSG_SPLINE_MOVE_SET_PITCH_RATE, 0x070C4}, // 4.0.6a 13623
+            {Opcode.SMSG_SPLINE_MOVE_SET_RUN_BACK_SPEED, 0x0E9C0}, // 4.0.6a 13623
+            {Opcode.SMSG_SPLINE_MOVE_SET_RUN_SPEED, 0x0F9E8}, // 4.0.6a 13623
+            {Opcode.SMSG_SPLINE_MOVE_SET_SWIM_BACK_SPEED, 0x021C8}, // 4.0.6a 13623
+            {Opcode.SMSG_SPLINE_MOVE_SET_SWIM_SPEED, 0x0B2C0}, // 4.0.6a 13623
+            {Opcode.SMSG_SPLINE_MOVE_SET_TURN_RATE, 0x07EAC}, // 4.0.6a 13623
+            {Opcode.SMSG_SPLINE_MOVE_SET_WALK_SPEED, 0x03EA8}, // 4.0.6a 13623
             {Opcode.SMSG_STABLE_RESULT, 0x0EACC}, // 4.0.6a 13623
             {Opcode.SMSG_STANDSTATE_CHANGE_FAILURE_OBSOLETE, 0x06DCC}, // 4.0.6a 13623 FIXME SMSG_ATTACKSTOP
             {Opcode.SMSG_STANDSTATE_UPDATE, 0x0E6A8}, // 4.0.6a 13623
@@ -1240,7 +1247,6 @@ namespace WowPacketParser.Enums.Version.V4_0_6_13596
             {Opcode.SMSG_UI_TIME, 0x0618C}, // 4.0.6a 13623
             {Opcode.SMSG_UNIT_SPELLCAST_START, 0x0BDE0}, // 4.0.6a 13623
             {Opcode.SMSG_UNKNOWN_1240, 0x0B8E0}, // 4.0.6a 13623
-            {Opcode.SMSG_UNKNOWN_1276, 0x0508}, // 4.0.6a 13623
             {Opcode.SMSG_UNKNOWN_1295, 0x10008}, // Unknown opcode ID
             {Opcode.SMSG_UNKNOWN_1302, 0x10010}, // Unknown opcode ID
             {Opcode.SMSG_UNKNOWN_1304, 0x072E0}, // 4.0.6a 13623 - Its movement related MSG_MOVE_SET_XXX

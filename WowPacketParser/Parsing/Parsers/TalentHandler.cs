@@ -29,24 +29,8 @@ namespace WowPacketParser.Parsing.Parsers
             }
         }
 
-        [Parser(Opcode.SMSG_TALENTS_INVOLUNTARILY_RESET)]
-        public static void HandleTalentsInvoluntarilyReset(Packet packet)
+        public static void ReadInspectPart(ref Packet packet)
         {
-            packet.ReadByte("Unk Byte");
-        }
-
-        [Parser(Opcode.SMSG_INSPECT_TALENT)]
-        [Parser(Opcode.SMSG_INSPECT_RESULTS_UPDATE)]
-        public static void HandleInspectTalent(Packet packet)
-        {
-            if (ClientVersion.AddedInVersion(ClientVersionBuild.V4_0_6a_13623))
-                packet.ReadGuid("GUID");
-            else
-                packet.ReadPackedGuid("GUID");
-
-            if (packet.Opcode == Opcodes.GetOpcode(Opcode.SMSG_INSPECT_TALENT))
-                ReadTalentInfo(ref packet);
-
             var slotMask = packet.ReadUInt32("Slot Mask");
             var slot = 0;
             while (slotMask > 0)
@@ -65,7 +49,7 @@ namespace WowPacketParser.Parsing.Parsers
                             {
                                 enchantName += packet.ReadUInt16();
                                 if (enchantMask > 1)
-                                        enchantName += ", ";
+                                    enchantName += ", ";
                             }
                             enchantMask >>= 1;
                         }
@@ -78,14 +62,45 @@ namespace WowPacketParser.Parsing.Parsers
                 ++slot;
                 slotMask >>= 1;
             }
+        }
 
-            if (packet.Opcode == Opcodes.GetOpcode(Opcode.SMSG_INSPECT_TALENT))
+        [Parser(Opcode.SMSG_TALENTS_INVOLUNTARILY_RESET)]
+        public static void HandleTalentsInvoluntarilyReset(Packet packet)
+        {
+            packet.ReadByte("Unk Byte");
+        }
+
+        [Parser(Opcode.SMSG_INSPECT_TALENT)]
+        public static void HandleInspectTalent(Packet packet)
+        {
+            if (ClientVersion.AddedInVersion(ClientVersionBuild.V4_0_6a_13623))
+                packet.ReadGuid("GUID");
+            else
+                packet.ReadPackedGuid("GUID");
+
+            ReadTalentInfo(ref packet);
+            ReadInspectPart(ref packet);
+
+            if (packet.CanRead()) // otherwise it would fail for players without a guild
             {
                 packet.ReadGuid("Guild GUID");
                 packet.ReadUInt32("Guild Level");
                 packet.ReadUInt64("Guild Xp");
                 packet.ReadUInt32("Guild Members");
             }
+        }
+
+        [Parser(Opcode.SMSG_INSPECT_RESULTS_UPDATE)]
+        public static void HandleInspectResultsUpdate(Packet packet)
+        {
+            if (ClientVersion.AddedInVersion(ClientVersionBuild.V4_3_4_15595)) // confirmed for 4.3.4
+                packet.ReadPackedGuid("GUID");
+            else if (ClientVersion.AddedInVersion(ClientVersionBuild.V4_0_6a_13623))
+                packet.ReadGuid("GUID");
+            else
+                packet.ReadPackedGuid("GUID");
+
+            ReadInspectPart(ref packet);
         }
 
         [Parser(Opcode.MSG_TALENT_WIPE_CONFIRM)]
@@ -134,6 +149,12 @@ namespace WowPacketParser.Parsing.Parsers
         {
             packet.ReadUInt32("Talent ID");
             packet.ReadUInt32("Rank");
+        }
+
+        [Parser(Opcode.SMSG_TALENTS_ERROR)]
+        public static void HandleTalentError(Packet packet)
+        {
+            packet.ReadEnum<TalentError>("Talent Error", TypeCode.Int32);
         }
 
         //[Parser(Opcode.CMSG_UNLEARN_TALENTS)]

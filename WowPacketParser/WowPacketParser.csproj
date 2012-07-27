@@ -83,10 +83,6 @@
   </PropertyGroup>
   <ItemGroup>
     <Reference Include="Microsoft.CSharp" />
-    <Reference Include="PowerCollections, Version=1.0.2141.24679, Culture=neutral, processorArchitecture=MSIL">
-      <SpecificVersion>False</SpecificVersion>
-      <HintPath>Dependencies\PowerCollections.dll</HintPath>
-    </Reference>
     <Reference Include="System" />
     <Reference Include="System.Core">
       <RequiredTargetFramework>3.5</RequiredTargetFramework>
@@ -102,6 +98,10 @@
     </Reference>
     <Reference Include="SharpSSH, Version=2.0.0.25137, Culture=neutral, PublicKeyToken=null">
       <HintPath>Dependencies\SharpSSH.dll</HintPath>
+    </Reference>
+    <Reference Include="PowerCollections, Version=1.0.2141.24679, Culture=neutral, PublicKeyToken=null">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>Dependencies\PowerCollections.dll</HintPath>
     </Reference>
   </ItemGroup>
   <ItemGroup>
@@ -186,6 +186,7 @@
     <Compile Include="Enums\HighGuidType.cs" />
     <Compile Include="Enums\Holiday.cs" />
     <Compile Include="Enums\InhabitType.cs" />
+    <Compile Include="Enums\TalentErrors.cs" />
     <Compile Include="Enums\TargetIcon.cs" />
     <Compile Include="Enums\InstanceResetWarningType.cs" />
     <Compile Include="Enums\InstanceStatus.cs" />
@@ -309,8 +310,10 @@
     <Compile Include="Enums\Version\V4_3_3_15354\Opcodes.cs" />
     <Compile Include="Enums\Version\V4_3_3_15354\UpdateFields.cs" />
     <Compile Include="Enums\Version\V4_3_4_15595\Opcodes.cs" />
+    <Compile Include="Enums\Version\V4_3_4_15595\SplineFlag434.cs" />
     <Compile Include="Enums\Version\V4_3_4_15595\UpdateFields.cs" />
     <Compile Include="Enums\VictimStates.cs" />
+    <Compile Include="Enums\VoidTransferError.cs" />
     <Compile Include="Enums\WardenCheckType.cs" />
     <Compile Include="Enums\WardenOpcode.cs" />
     <Compile Include="Enums\WeatherState.cs" />
@@ -343,6 +346,7 @@
     <Compile Include="Parsing\Parsers\AchievementHandler.cs" />
     <Compile Include="Parsing\Parsers\ActionBarHandler.cs" />
     <Compile Include="Parsing\Parsers\AddonHandler.cs" />
+    <Compile Include="Parsing\Parsers\ArchaelogyHandler.cs" />
     <Compile Include="Parsing\Parsers\AuctionHouseHandler.cs" />
     <Compile Include="Parsing\Parsers\BattlegroundHandler.cs" />
     <Compile Include="Parsing\Parsers\CalendarHandler.cs" />
@@ -356,6 +360,7 @@
     <Compile Include="Parsing\Parsers\EquipmentSetHandler.cs" />
     <Compile Include="Parsing\Parsers\GameObjectHandler.cs" />
     <Compile Include="Parsing\Parsers\GroupHandler.cs" />
+    <Compile Include="Parsing\Parsers\GuildFinderHandler.cs" />
     <Compile Include="Parsing\Parsers\GuildHandler.cs" />
     <Compile Include="Parsing\Parsers\InstanceHandler.cs" />
     <Compile Include="Parsing\Parsers\ItemHandler.cs" />
@@ -378,6 +383,7 @@
     <Compile Include="Parsing\Parsers\TradeHandler.cs" />
     <Compile Include="Parsing\Parsers\UpdateHandler.cs" />
     <Compile Include="Parsing\Parsers\VoiceChatHandler.cs" />
+    <Compile Include="Parsing\Parsers\VoidStorageHandler.cs" />
     <Compile Include="Parsing\Parsers\WardenHandler.cs" />
     <Compile Include="Parsing\Parsers\WorldStateHandler.cs" />
     <Compile Include="Program.cs" />
@@ -431,6 +437,7 @@
     <Compile Include="Store\Objects\WoWObject.cs" />
     <Compile Include="Store\Storage.cs" />
     <Compile Include="Store\StoreDictionaries.cs" />
+    <Compile Include="Enums\GuildNewsType.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="App.config" />

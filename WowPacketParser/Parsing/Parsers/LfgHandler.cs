@@ -7,7 +7,7 @@ namespace WowPacketParser.Parsing.Parsers
 {
     public static class LfgHandler
     {
-        [Parser(Opcode.CMSG_LFG_JOIN)]
+        [Parser(Opcode.CMSG_LFG_JOIN, ClientVersionBuild.Zero, ClientVersionBuild.V4_3_4_15595)]
         public static void HandleLfgJoin(Packet packet)
         {
             packet.ReadEnum<LfgRoleFlag>("Roles", TypeCode.Int32);
@@ -20,10 +20,47 @@ namespace WowPacketParser.Parsing.Parsers
             packet.ReadCString("Comment");
         }
 
-        [Parser(Opcode.CMSG_LFG_SET_COMMENT)]
+        [Parser(Opcode.CMSG_LFG_JOIN, ClientVersionBuild.V4_3_4_15595)]
+        public static void HandleLfgJoin434(Packet packet)
+        {
+            packet.ReadEnum<LfgRoleFlag>("Roles", TypeCode.Int32);
+
+            for (var i = 0; i < 3; i++)
+                packet.ReadInt32("Unk Int32", i);
+
+            var length = packet.ReadBits("Comment Length", 9);
+            var count = packet.ReadBits("Join Dungeon Count", 24);
+
+            packet.ReadWoWString("Comment", length);
+
+            for (var i = 0; i < count; i++)
+                packet.ReadLfgEntry("Dungeon Entry", i);
+        }
+
+        [Parser(Opcode.CMSG_LFG_LEAVE, ClientVersionBuild.V4_3_4_15595)]
+        public static void HandleLfgLeave(Packet packet)
+        {
+            packet.ReadEnum<LfgRoleFlag>("Roles", TypeCode.Int32);
+            packet.ReadTime("Time");
+            packet.ReadUInt32("Reason?");
+            packet.ReadUInt32("Instance Id");
+
+            var guid = packet.StartBitStream(4, 5, 0, 6, 2, 7, 1, 3);
+            packet.ParseBitStream(guid, 7, 4, 3, 2, 6, 0, 1, 5);
+            packet.WriteGuid("Guid", guid);
+        }
+
+        [Parser(Opcode.CMSG_LFG_SET_COMMENT, ClientVersionBuild.Zero, ClientVersionBuild.V4_3_4_15595)]
         public static void HandleLfgComment(Packet packet)
         {
             packet.ReadCString("Comment");
+        }
+
+        [Parser(Opcode.CMSG_LFG_SET_COMMENT, ClientVersionBuild.V4_3_4_15595)]
+        public static void HandleLfgComment434(Packet packet)
+        {
+            var length = packet.ReadBits("String Length", 9);
+            packet.ReadWoWString("Comment", length);
         }
 
         [Parser(Opcode.CMSG_LFG_SET_BOOT_VOTE)]
@@ -32,11 +69,39 @@ namespace WowPacketParser.Parsing.Parsers
             packet.ReadBoolean("Agree");
         }
 
-        [Parser(Opcode.CMSG_LFG_PROPOSAL_RESULT)]
+        [Parser(Opcode.CMSG_LFG_PROPOSAL_RESULT, ClientVersionBuild.Zero, ClientVersionBuild.V4_3_4_15595)]
         public static void HandleLfgProposalResult(Packet packet)
         {
             packet.ReadInt32("Group ID");
             packet.ReadBoolean("Accept");
+        }
+
+        [Parser(Opcode.CMSG_LFG_PROPOSAL_RESULT, ClientVersionBuild.V4_3_4_15595)]
+        public static void HandleLfgProposalResult434(Packet packet)
+        {
+            packet.ReadUInt32("Unk Uint32");
+            packet.ReadTime("Time");
+            packet.ReadEnum<LfgRoleFlag>("Roles", TypeCode.Int32);
+            packet.ReadUInt32("Unk Uint32");
+
+            var guid2 = packet.StartBitStream(4, 5, 0, 6, 2, 7, 1, 3);
+            packet.ParseBitStream(guid2, 7, 4, 3, 2, 6, 0, 1, 5);
+            packet.WriteGuid("Player Guid", guid2);
+
+            var guid = new byte[8];
+            guid[7] = packet.ReadBit().ToByte();
+            packet.ReadBit("Accept");
+            guid[1] = packet.ReadBit().ToByte();
+            guid[3] = packet.ReadBit().ToByte();
+            guid[0] = packet.ReadBit().ToByte();
+            guid[5] = packet.ReadBit().ToByte();
+            guid[4] = packet.ReadBit().ToByte();
+            guid[6] = packet.ReadBit().ToByte();
+            guid[2] = packet.ReadBit().ToByte();
+
+            packet.ParseBitStream(guid, 7, 1, 5, 6, 3, 4, 0, 2);
+            packet.WriteGuid("Instance Guid", guid);
+
         }
 
         [Parser(Opcode.SMSG_LFG_BOOT_PROPOSAL_UPDATE)]
@@ -77,6 +142,10 @@ namespace WowPacketParser.Parsing.Parsers
                 packet.ReadInt32("Unk 6");
                 packet.ReadInt32("Unk 7");
                 packet.ReadInt32("Unk 8");
+
+                if (ClientVersion.AddedInVersion(ClientVersionBuild.V4_3_4_15595)) // perhaps earlier, confirmed for 434
+                    packet.ReadInt32("Unk 8.1");
+
                 packet.ReadByte("Unk 9");
 
                 // LFG_SLOT_INFO_LOOT related
@@ -298,7 +367,10 @@ namespace WowPacketParser.Parsing.Parsers
         [Parser(Opcode.CMSG_LFG_SET_ROLES)]
         public static void HandleLfgSetRoles(Packet packet)
         {
-            packet.ReadEnum<LfgRoleFlag>("Roles", TypeCode.Byte);
+            packet.ReadEnum<LfgRoleFlag>("Roles",
+                                         ClientVersion.AddedInVersion(ClientVersionBuild.V4_3_4_15595)
+                                             ? TypeCode.Int32
+                                             : TypeCode.Byte);
         }
 
         [Parser(Opcode.CMSG_LFG_TELEPORT)]
@@ -421,6 +493,12 @@ namespace WowPacketParser.Parsing.Parsers
                 packet.ReadGuid("Instance GUID", i);
                 packet.ReadInt32("Encounters Mask", i);
             }
+        }
+
+        [Parser(Opcode.CMSG_DUNGEON_FINDER_GET_SYSTEM_INFO)]
+        public static void HandleDungeonFinderGetSystemInfo(Packet packet)
+        {
+            packet.ReadBit("Unk boolean");
         }
     }
 }

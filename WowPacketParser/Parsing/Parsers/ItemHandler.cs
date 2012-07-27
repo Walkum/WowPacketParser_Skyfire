@@ -171,7 +171,7 @@ namespace WowPacketParser.Parsing.Parsers
             packet.ReadGuid("Item GUID");
         }
 
-        [Parser(Opcode.SMSG_ITEM_REFUND_INFO_RESPONSE)]
+        [Parser(Opcode.SMSG_ITEM_REFUND_INFO_RESPONSE, ClientVersionBuild.Zero, ClientVersionBuild.V4_3_4_15595)]
         public static void HandleItemRefundInfoResponse(Packet packet)
         {
             packet.ReadGuid("Item GUID");
@@ -185,6 +185,45 @@ namespace WowPacketParser.Parsing.Parsers
             }
             packet.ReadUInt32("Unk UInt32 1");
             packet.ReadUInt32("Time Left");
+        }
+
+        [Parser(Opcode.SMSG_ITEM_REFUND_INFO_RESPONSE, ClientVersionBuild.V4_3_4_15595)]
+        public static void HandleItemRefundInfoResponse434(Packet packet)
+        {
+            var guid = new byte[8];
+            guid[3] = (byte)(packet.ReadBit() ? 1 : 0);
+            guid[5] = (byte)(packet.ReadBit() ? 1 : 0);
+            guid[7] = (byte)(packet.ReadBit() ? 1 : 0);
+            guid[6] = (byte)(packet.ReadBit() ? 1 : 0);
+            guid[2] = (byte)(packet.ReadBit() ? 1 : 0);
+            guid[4] = (byte)(packet.ReadBit() ? 1 : 0);
+            guid[0] = (byte)(packet.ReadBit() ? 1 : 0);
+            guid[1] = (byte)(packet.ReadBit() ? 1 : 0);
+
+            if (guid[7] != 0) guid[7] ^= packet.ReadByte();
+            packet.ReadUInt32("Time Left");
+            for (var i = 0; i < 5; ++i)
+            {
+                packet.ReadUInt32("Item Count", i);
+                packet.ReadEntryWithName<UInt32>(StoreNameType.Item, "Item Cost Entry", i);
+            }
+
+            if (guid[6] != 0) guid[6] ^= packet.ReadByte();
+            if (guid[4] != 0) guid[4] ^= packet.ReadByte();
+            if (guid[3] != 0) guid[3] ^= packet.ReadByte();
+            if (guid[2] != 0) guid[2] ^= packet.ReadByte();
+            for (var i = 0; i < 5; ++i)
+            {
+                packet.ReadUInt32("Currency Count", i);
+                packet.ReadUInt32("Currency Entry", i);
+            }
+
+            if (guid[1] != 0) guid[1] ^= packet.ReadByte();
+            if (guid[5] != 0) guid[5] ^= packet.ReadByte();
+            packet.ReadUInt32("Unk UInt32 1");
+            if (guid[0] != 0) guid[0] ^= packet.ReadByte();
+            packet.ReadUInt32("Money Cost");
+            packet.WriteGuid("Item Guid", guid);
         }
 
         [Parser(Opcode.CMSG_REPAIR_ITEM)]
@@ -514,6 +553,25 @@ namespace WowPacketParser.Parsing.Parsers
             Storage.ItemTemplates.Add((uint) entry.Key, item, packet.TimeSpan);
         }
 
+        [Parser(Opcode.CMSG_REQUEST_HOTFIX, ClientVersionBuild.V4_3_4_15595)]
+        public static void HandleItemRequestHotfix434(Packet packet)
+        {
+            packet.ReadUInt32("Type");
+            var count = packet.ReadBits("Count", 23);
+            var guidBytes = new byte[count][];
+            for (var i = 0; i < count; ++i)
+                guidBytes[i] = packet.StartBitStream(0, 4, 7, 2, 5, 3, 6, 1);
+
+            for (var i = 0; i < count; ++i)
+            {
+                packet.ParseBitStream(guidBytes[i], 5, 6, 7, 0, 1, 3, 4);
+                packet.ReadEntryWithName<UInt32>(StoreNameType.Item, "Entry", i);
+                packet.ParseBitStream(guidBytes[i], 2);
+
+                packet.WriteGuid("GUID", guidBytes[i], i);
+            }
+        }
+
         [Parser(Opcode.CMSG_REQUEST_HOTFIX, ClientVersionBuild.V4_2_2_14545, ClientVersionBuild.V4_3_0_15005)]
         public static void HandleItemRequestHotfix422(Packet packet)
         {
@@ -525,9 +583,9 @@ namespace WowPacketParser.Parsing.Parsers
 
             for (var i = 0; i < count; ++i)
             {
-                packet.ReadUInt32("Entry", i);
+                packet.ReadEntryWithName<UInt32>(StoreNameType.Item, "Entry", i);
                 guidBytes[i] = packet.ParseBitStream(guidBytes[i], 2, 6, 3, 0, 5, 7, 1, 4);
-                packet.ToGuid("GUID", guidBytes[i], i);
+                packet.WriteGuid("GUID", guidBytes[i], i);
             }
         }
 
@@ -545,7 +603,7 @@ namespace WowPacketParser.Parsing.Parsers
             }
         }
 
-        [Parser(Opcode.SMSG_DB_REPLY)]
+        [Parser(Opcode.SMSG_DB_REPLY, ClientVersionBuild.Zero, ClientVersionBuild.V4_3_4_15595)]
         public static void HandleDBReply(Packet packet)
         {
             packet.ReadUInt32("Type");
@@ -680,9 +738,146 @@ namespace WowPacketParser.Parsing.Parsers
             packet.AddSniffData(StoreNameType.Item, itemId, "DB_REPLY");
         }
 
+        [Parser(Opcode.SMSG_DB_REPLY, ClientVersionBuild.V4_3_4_15595)]
+        public static void HandleDBReply434(Packet packet)
+        {
+            var itemId = packet.ReadEntryWithName<UInt32>(StoreNameType.Item, "Entry");
+            var type = packet.ReadUInt32("Type");
+            packet.ReadTime("Hotfix date");
+            var size = packet.ReadUInt32("Size");
+            if (size == 0)
+                return;
+
+            switch (type)
+            {
+                case 0x50238EC2:    // Item
+                {
+                    packet.ReadEntryWithName<UInt32>(StoreNameType.Item, "Entry");
+                    packet.ReadEnum<ItemClass>("Class", TypeCode.Int32);
+                    packet.ReadUInt32("Sub Class");
+                    packet.ReadInt32("Unk Int32");
+                    packet.ReadEnum<Material>("Material", TypeCode.Int32);
+                    packet.ReadUInt32("Display ID");
+                    packet.ReadEnum<InventoryType>("Inventory Type", TypeCode.UInt32);
+                    packet.ReadEnum<SheathType>("Sheath Type", TypeCode.Int32);
+                    break;
+                }
+                case 0x919BE54E:    // Item-sparse
+                {
+                    packet.ReadEntryWithName<UInt32>(StoreNameType.Item, "Entry");
+                    packet.ReadEnum<ItemQuality>("Quality", TypeCode.Int32);
+                    packet.ReadEnum<ItemFlag>("Flags", TypeCode.Int32);
+                    packet.ReadEnum<ItemFlagExtra>("Extra Flags", TypeCode.Int32);
+                    packet.ReadSingle("Unk430_1");
+                    packet.ReadSingle("Unk430_2");
+                    packet.ReadUInt32("Buy count");
+                    packet.ReadInt32("Buy Price");
+                    packet.ReadUInt32("Sell Price");
+                    packet.ReadEnum<InventoryType>("Inventory Type", TypeCode.Int32);
+                    packet.ReadEnum<ClassMask>("Allowed Classes", TypeCode.Int32);
+                    packet.ReadEnum<RaceMask>("Allowed Races", TypeCode.Int32);
+                    packet.ReadUInt32("Item Level");
+                    packet.ReadUInt32("Required Level");
+                    packet.ReadUInt32("Required Skill ID");
+                    packet.ReadUInt32("Required Skill Level");
+                    packet.ReadEntryWithName<Int32>(StoreNameType.Spell, "Required Spell");
+                    packet.ReadUInt32("Required Honor Rank");
+                    packet.ReadUInt32("Required City Rank");
+                    packet.ReadUInt32("Required Rep Faction");
+                    packet.ReadUInt32("Required Rep Value");
+                    packet.ReadInt32("Max Count");
+                    packet.ReadInt32("Max Stack Size");
+                    packet.ReadUInt32("Container Slots");
+
+                    for (var i = 0; i < 10; i++)
+                        packet.ReadEnum<ItemModType>("Stat Type", TypeCode.Int32, i);
+
+                    for (var i = 0; i < 10; i++)
+                        packet.ReadInt32("Stat Value", i);
+
+                    for (var i = 0; i < 10; i++)
+                        packet.ReadInt32("Unk UInt32 1", i);
+
+                    for (var i = 0; i < 10; i++)
+                        packet.ReadInt32("Unk UInt32 2", i);
+
+                    packet.ReadUInt32("Scaling Stat Distribution");
+                    packet.ReadEnum<DamageType>("Damage Type", TypeCode.Int32);
+                    packet.ReadUInt32("Delay");
+                    packet.ReadSingle("Ranged Mod");
+
+                    for (var i = 0; i < 5; i++)
+                        packet.ReadEntryWithName<Int32>(StoreNameType.Spell, "Triggered Spell ID", i);
+
+                    for (var i = 0; i < 5; i++)
+                        packet.ReadEnum<ItemSpellTriggerType>("Trigger Spell Type", TypeCode.Int32, i);
+
+                    for (var i = 0; i < 5; i++)
+                        packet.ReadInt32("Triggered Spell Charges", i);
+
+                    for (var i = 0; i < 5; i++)
+                        packet.ReadInt32("Triggered Spell Cooldown", i);
+
+                    for (var i = 0; i < 5; i++)
+                        packet.ReadUInt32("Triggered Spell Category", i);
+
+                    for (var i = 0; i < 5; i++)
+                        packet.ReadInt32("Triggered Spell Category Cooldown", i);
+
+                    packet.ReadEnum<ItemBonding>("Bonding", TypeCode.Int32);
+
+                    for (var i = 0; i < 4; i++)
+                        if (packet.ReadUInt16() > 0)
+                            packet.ReadCString("Name", i);
+
+                    if (packet.ReadUInt16() > 0)
+                        packet.ReadCString("Description");
+
+                    packet.ReadUInt32("Page Text");
+                    packet.ReadEnum<Language>("Language", TypeCode.Int32);
+                    packet.ReadEnum<PageMaterial>("Page Material", TypeCode.Int32);
+                    packet.ReadEntryWithName<Int32>(StoreNameType.Quest, "Start Quest");
+                    packet.ReadUInt32("Lock ID");
+                    packet.ReadEnum<Material>("Material", TypeCode.Int32);
+                    packet.ReadEnum<SheathType>("Sheath Type", TypeCode.Int32);
+                    packet.ReadInt32("Random Property");
+                    packet.ReadInt32("Random Suffix");
+                    packet.ReadUInt32("Item Set");
+                    packet.ReadEntryWithName<UInt32>(StoreNameType.Area, "Area");
+                    // In this single (?) case, map 0 means no map
+                    var map = packet.ReadUInt32();
+                    packet.WriteLine("Map ID: " + (map != 0 ? StoreGetters.GetName(StoreNameType.Map, (int)map) : map + " (No map)"));
+                    packet.ReadEnum<BagFamilyMask>("Bag Family", TypeCode.Int32);
+                    packet.ReadEnum<TotemCategory>("Totem Category", TypeCode.Int32);
+
+                    for (var i = 0; i < 3; i++)
+                        packet.ReadEnum<ItemSocketColor>("Socket Color", TypeCode.Int32, i);
+
+                    for (var i = 0; i < 3; i++)
+                        packet.ReadUInt32("Socket Item", i);
+
+                    packet.ReadUInt32("Socket Bonus");
+                    packet.ReadUInt32("Gem Properties");
+                    packet.ReadSingle("Armor Damage Modifier");
+                    packet.ReadInt32("Duration");
+                    packet.ReadInt32("Limit Category");
+                    packet.ReadEnum<Holiday>("Holiday", TypeCode.Int32);
+                    packet.ReadSingle("Stat Scaling Factor");
+                    packet.ReadUInt32("Unk UInt32 1");
+                    packet.ReadUInt32("Unk UInt32 2");
+                    break;
+                }
+            }
+
+            packet.AddSniffData(StoreNameType.Item, itemId, "DB_REPLY");
+        }
+
         [Parser(Opcode.SMSG_UPDATE_ITEM_ENCHANTMENTS)]
         public static void HandleUpdateItemEnchantments(Packet packet)
         {
+            if (ClientVersion.AddedInVersion(ClientVersionBuild.V4_3_4_15595))
+                packet.ReadGuid("Item Guid");
+
             for (var i = 0; i < 4; i++)
                 packet.ReadInt32("Aura ID", i);
         }
@@ -715,7 +910,42 @@ namespace WowPacketParser.Parsing.Parsers
             packet.ParseBitStream(guid, 1, 5);
             packet.ReadInt32("Error ID");
             packet.ParseBitStream(guid, 2, 4, 7, 3, 6, 0);
-            packet.ToGuid("Item Guid", guid);
+            packet.WriteGuid("Item Guid", guid);
+        }
+
+        [Parser(Opcode.CMSG_REFORGE_ITEM, ClientVersionBuild.V4_3_4_15595)]
+        public static void HandleItemSendReforge(Packet packet)
+        {
+            packet.ReadInt32("Reforge Entry");
+            packet.ReadInt32("Slot");
+            packet.ReadInt32("Bag");
+
+            var guid = packet.StartBitStream(2,6,3,4,1,0,7,5);
+            packet.ParseBitStream(guid,2,3,6,4,1,0,7,5);
+            packet.WriteGuid("Reforger Guid", guid);
+            
+        }
+
+        [Parser(Opcode.SMSG_REFORGE_RESULT, ClientVersionBuild.V4_3_4_15595)]
+        public static void HandleItemReforgeResult(Packet packet)
+        {
+            packet.ReadBit("Successful");
+        }
+
+        [Parser(Opcode.SMSG_ITEM_TEXT_QUERY_RESPONSE, ClientVersionBuild.V4_3_4_15595)]
+        public static void HandleItemTextQueryResult(Packet packet)
+        {
+            if (!packet.ReadBoolean("Empty"))
+            {
+                packet.ReadGuid("Item Guid");
+                packet.ReadCString("Item Text");
+            }
+        }
+
+        [Parser(Opcode.CMSG_ITEM_TEXT_QUERY, ClientVersionBuild.V4_3_4_15595)]
+        public static void HandleItemTextQuery(Packet packet)
+        {
+            packet.ReadGuid("Item Guid");
         }
     }
 }

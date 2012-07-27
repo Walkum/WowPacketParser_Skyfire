@@ -15,7 +15,7 @@ namespace WowPacketParser.Parsing.Parsers
         {
             packet.ReadUInt32("Gold");
 
-            if (ClientVersion.AddedInVersion(ClientVersionBuild.V4_0_6a_13623))
+            if (ClientVersion.AddedInVersion(ClientVersionBuild.V4_0_6a_13623) && ClientVersion.RemovedInVersion(ClientVersionBuild.V4_3_4_15595)) // remove confirmed for 434
                 packet.ReadUInt32("Guild Gold");
 
             if (ClientVersion.AddedInVersion(ClientType.WrathOfTheLichKing)) // no idea when this was added, doesn't exist in 2.4.1
@@ -48,7 +48,10 @@ namespace WowPacketParser.Parsing.Parsers
         [Parser(Opcode.CMSG_OPT_OUT_OF_LOOT)]
         public static void HandleOptOutOfLoot(Packet packet)
         {
-            packet.ReadUInt32("Always Pass");
+            if (ClientVersion.AddedInVersion(ClientVersionBuild.V4_3_4_15595))
+                packet.ReadBoolean("Always Pass");
+            else
+                packet.ReadUInt32("Always Pass");
         }
 
         [Parser(Opcode.SMSG_LOOT_ALL_PASSED)]
@@ -149,7 +152,10 @@ namespace WowPacketParser.Parsing.Parsers
             packet.ReadEntryWithName<UInt32>(StoreNameType.Item, "Entry");
             packet.ReadInt32("Random Property Id");
             packet.ReadInt32("Random Suffix");
-            packet.ReadByte("Roll Number");
+            if (ClientVersion.AddedInVersion(ClientVersionBuild.V4_3_0_15005))
+                packet.ReadInt32("Roll Number");
+            else
+                packet.ReadByte("Roll Number");
             packet.ReadEnum<LootRollType>("Roll Type", TypeCode.Byte);
             packet.ReadBoolean("Auto Pass");
         }
@@ -163,7 +169,10 @@ namespace WowPacketParser.Parsing.Parsers
             packet.ReadInt32("Random Property Id");
             packet.ReadInt32("Random Suffix");
             packet.ReadGuid("Player GUID");
-            packet.ReadByte("Roll Number");
+            if (ClientVersion.AddedInVersion(ClientVersionBuild.V4_3_0_15005))
+                packet.ReadInt32("Roll Number");
+            else
+                packet.ReadByte("Roll Number");
             packet.ReadEnum<LootRollType>("Roll Type", TypeCode.Byte);
         }
 
@@ -172,7 +181,7 @@ namespace WowPacketParser.Parsing.Parsers
         {
             packet.ReadGuid("GUID");
             packet.ReadEntryWithName<Int32>(StoreNameType.Map, "Map ID");
-            if (ClientVersion.AddedInVersion(ClientVersionBuild.V3_3_5a_12340))
+            if (ClientVersion.AddedInVersion(ClientVersionBuild.V3_3_3_11685)) // probably earlier
                 packet.ReadUInt32("Slot");
             packet.ReadEntryWithName<UInt32>(StoreNameType.Item, "Entry");
             packet.ReadInt32("Random Suffix");

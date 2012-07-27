@@ -8,6 +8,12 @@ namespace WowPacketParser.Parsing.Parsers
 {
     public static class MiscellaneousParsers
     {
+        [Parser(Opcode.CMSG_LOG_DISCONNECT)]
+        public static void HandleLogDisconnect(Packet packet)
+        {
+            packet.ReadUInt32("Unk");
+        }
+
         [Parser(Opcode.CMSG_VIOLENCE_LEVEL)]
         public static void HandleSetViolenceLevel(Packet packet)
         {
@@ -25,17 +31,13 @@ namespace WowPacketParser.Parsing.Parsers
         [Parser(Opcode.SMSG_HOTFIX_INFO)]
         public static void HandleHotfixInfo(Packet packet)
         {
-            var count = 0u;
-            if (ClientVersion.AddedInVersion(ClientVersionBuild.V4_3_4_15595))  // Might have been earlier
-                count = packet.ReadBits("Count", 22);
-            else
-                count = packet.ReadUInt32("Count");
+            var count = ClientVersion.AddedInVersion(ClientVersionBuild.V4_3_4_15595) ? packet.ReadBits("Count", 22) : packet.ReadUInt32("Count");
 
-            for (var i = 0u; i < count; i++)
+            for (var i = 0; i < count; i++)
             {
-                packet.ReadInt32("Hotfix type"); // Also time?
-                packet.ReadTime("Hotfix date");
-                packet.ReadInt32("Hotfixed entry");
+                packet.ReadInt32("Hotfix type", i); // Also time?
+                packet.ReadTime("Hotfix date", i);
+                packet.ReadInt32("Hotfixed entry", i);
             }
         }
 
@@ -112,23 +114,29 @@ namespace WowPacketParser.Parsing.Parsers
         [Parser(Opcode.SMSG_MULTIPLE_PACKETS_2)]
         public static void HandleMultiplePackets2(Packet packet)
         {
-            // This opcode heavily relies on ALL of its contained packets
-            // to be parsed successfully
 
-            //packet.WriteLine("{");
-            //var i = 0;
-            //while (packet.CanRead())
-            //{
-            //    packet.Opcode = packet.ReadUInt16();
+            if (ClientVersion.AddedInVersion(ClientType.Cataclysm))
+            {
+                packet.ReadToEnd();
+                throw new NotImplementedException("This opcode heavily relies on ALL" +
+                                                  "of its contained packets to be parsed successfully");
+                // Some sort of infinite loop happens here...
+            }
 
-            //    if (i > 0)
-            //        packet.WriteLine();
+            packet.WriteLine("{");
+            var i = 0;
+            while (packet.CanRead())
+            {
+                packet.Opcode = packet.ReadUInt16();
 
-            //    packet.Write("[{0}] ", i++);
+                if (i > 0)
+                    packet.WriteLine();
 
-            //    Handler.Parse(packet, isMultiple: true);
-            //}
-            //packet.WriteLine("}");
+                packet.Write("[{0}] ", i++);
+
+                Handler.Parse(packet, isMultiple: true);
+            }
+            packet.WriteLine("}");
         }
 
         [Parser(Opcode.SMSG_STOP_DANCE)]
@@ -250,7 +258,7 @@ namespace WowPacketParser.Parsing.Parsers
             packet.ReadBoolean("Accept");
         }
 
-        [Parser(Opcode.SMSG_FEATURE_SYSTEM_STATUS)]
+        [Parser(Opcode.SMSG_FEATURE_SYSTEM_STATUS, ClientVersionBuild.Zero, ClientVersionBuild.V4_3_4_15595)]
         public static void HandleFeatureSystemStatus(Packet packet)
         {
             packet.ReadByte("Unk byte");
@@ -262,6 +270,36 @@ namespace WowPacketParser.Parsing.Parsers
             {
                 packet.ReadByte("Complain System Status");
                 packet.ReadInt32("Unknown Mail Url Related Value");
+            }
+        }
+
+        [Parser(Opcode.SMSG_FEATURE_SYSTEM_STATUS, ClientVersionBuild.V4_3_4_15595)]
+        public static void HandleFeatureSystemStatus434(Packet packet)
+        {
+            packet.ReadByte("Unk byte");
+            packet.ReadInt32("Unk1");
+            packet.ReadInt32("Unk2");
+            packet.ReadInt32("Unk3");
+            packet.ReadInt32("Unk4");
+            packet.ReadBit("Unkbit1");
+            packet.ReadBit("Unkbit2");
+            packet.ReadBit("Unkbit3");
+            var v10 = packet.ReadBit("Unkbit4");
+            var v9 = packet.ReadBit("Unkbit5");
+            packet.ReadBit("Unkbit6");
+            if (v10)
+            {
+                packet.ReadInt32("Unk5");
+                packet.ReadInt32("Unk6");
+                packet.ReadInt32("Unk7");
+                packet.ReadInt32("Unk8");
+            }
+
+            if (v9)
+            {
+                packet.ReadInt32("Unk9");
+                packet.ReadInt32("Unk10");
+                packet.ReadInt32("Unk11");
             }
         }
 
@@ -298,7 +336,7 @@ namespace WowPacketParser.Parsing.Parsers
             packet.ReadInt32("Version");
         }
 
-        [Parser(Opcode.CMSG_MOVE_TIME_SKIPPED)]
+        [Parser(Opcode.CMSG_MOVE_TIME_SKIPPED, ClientVersionBuild.Zero, ClientVersionBuild.V4_3_4_15595)]
         public static void HandleMoveTimeSkipped(Packet packet)
         {
             packet.ReadPackedGuid("GUID");
@@ -621,6 +659,28 @@ namespace WowPacketParser.Parsing.Parsers
             packet.ReadCString("Message");
         }
 
+        [Parser(Opcode.SMSG_WORLD_SERVER_INFO)]
+        public static void HandleWorldServerInfo(Packet packet)
+        {
+            var b0 = packet.ReadBit("Unk Bit 1");
+            var b1 = packet.ReadBit("Unk Bit 2");
+            var b2 = packet.ReadBit("Unk Bit 3");
+
+            if (b2)
+                packet.ReadInt32("Unk Int32 (EVENT_INELIGIBLE_FOR_LOOT)");
+
+            packet.ReadByte("Unk Byte");
+
+            if (b1)
+                packet.ReadInt32("Unk Int32");
+
+            if (b0)
+                packet.ReadInt32("Unk Int32");
+
+            packet.ReadTime("Unk Time");
+            packet.ReadInt32("Unk Int32");
+        }
+
         [Parser(Opcode.MSG_INSPECT_HONOR_STATS)]
         public static void HandleInspectHonorStats(Packet packet)
         {
@@ -635,12 +695,41 @@ namespace WowPacketParser.Parsing.Parsers
             packet.ReadUInt32("Life Time Kills");
         }
 
-        [Parser(Opcode.CMSG_LOAD_SCREEN)] // Also named CMSG_LOADING_SCREEN_NOTIFY
+        [Parser(Opcode.SMSG_INSPECT_HONOR_STATS)]
+        public static void HandleInspectHonorStats434(Packet packet)
+        {
+            var guid = packet.StartBitStream(4, 3, 6, 2, 5, 0, 7, 1);
+
+            packet.ReadByte("Max Rank");
+            packet.ReadInt16("Yesterday"); // Today?
+            packet.ReadInt16("Today"); // Yesterday?
+
+            packet.ParseBitStream(guid, 2, 0, 6, 3, 4, 1, 5);
+
+            packet.ReadInt32("Life Time Kills");
+
+            packet.ParseBitStream(guid, 7);
+
+            packet.WriteGuid("Guid", guid);
+        }
+
+        [Parser(Opcode.CMSG_LOAD_SCREEN, ClientVersionBuild.Zero, ClientVersionBuild.V4_3_4_15595)] // Also named CMSG_LOADING_SCREEN_NOTIFY
         public static void HandleClientEnterWorld(Packet packet)
         {
             packet.WriteLine("Loading: " + (packet.ReadBit() ? "true" : "false")); // Not sure on the meaning
             var mapId = packet.ReadEntryWithName<UInt32>(StoreNameType.Map, "Map");
             MovementHandler.CurrentMapId = (uint) mapId;
+
+            if (mapId >= 0 && mapId < 1000) // Getting some weird results in a couple of packets
+                packet.AddSniffData(StoreNameType.Map, mapId, "LOAD_SCREEN");
+        }
+
+        [Parser(Opcode.CMSG_LOAD_SCREEN, ClientVersionBuild.V4_3_4_15595)]
+        public static void HandleClientEnterWorld434(Packet packet)
+        {
+            var mapId = packet.ReadEntryWithName<UInt32>(StoreNameType.Map, "Map");
+            packet.ReadBit("Loading");
+            MovementHandler.CurrentMapId = (uint)mapId;
 
             if (mapId >= 0 && mapId < 1000) // Getting some weird results in a couple of packets
                 packet.AddSniffData(StoreNameType.Map, mapId, "LOAD_SCREEN");
@@ -671,17 +760,15 @@ namespace WowPacketParser.Parsing.Parsers
         [Parser(Opcode.SMSG_CAMERA_SHAKE)]
         public static void HandleCameraShake(Packet packet)
         {
-            packet.ReadInt32("SpellEffectCameraShakes"); // index from dbc
-            packet.ReadInt32("Unknown"); // Sound related
+            packet.ReadInt32("SpellEffectCameraShakes ID");
+            packet.ReadInt32("Sound ID");
         }
 
         [Parser(Opcode.SMSG_COMPLAIN_RESULT)]
         public static void HandleComplainResult(Packet packet)
         {
             packet.ReadByte("Unknown1"); // value 1 resets CGChat::m_complaintsSystemStatus in client. (unused?)
-
-            if (ClientVersion.AddedInVersion(ClientVersionBuild.V4_2_2_14545)) // guessing
-                packet.ReadByte("Unknown2"); // value 0xC generates a "CalendarError" in client.
+            packet.ReadByte("Unknown2"); // value 0xC generates a "CalendarError" in client. (found in 3.3.3a and 4.2.2a at least)
         }
 
         [Parser(Opcode.CMSG_MINIGAME_MOVE)]
@@ -709,8 +796,8 @@ namespace WowPacketParser.Parsing.Parsers
         public static void HandleSummonRequest(Packet packet)
         {
             packet.ReadGuid("Summoner GUID");
-            packet.ReadInt32("Unk int 1");
-            packet.ReadInt32("Unk int 2");
+            packet.ReadEntryWithName<Int32>(StoreNameType.Area, "Area ID");
+            packet.ReadTime("Summon Confirm Time");
         }
 
         [Parser(Opcode.CMSG_SUMMON_RESPONSE)]
@@ -721,6 +808,7 @@ namespace WowPacketParser.Parsing.Parsers
         }
 
         [Parser(Opcode.CMSG_SPELLCLICK)]
+        [Parser(Opcode.CMSG_INSPECT_HONOR_STATS)]
         public static void HandleSpellClick(Packet packet)
         {
             packet.ReadGuid("GUID");
@@ -730,6 +818,186 @@ namespace WowPacketParser.Parsing.Parsers
         public static void HandleUITime(Packet packet)
         {
             packet.ReadTime("Time");
+        }
+
+        [Parser(Opcode.SMSG_START_TIMER)]
+        public static void HandleStartTimer(Packet packet)
+        {
+            // Unk use, related to EVENT_START_TIMER
+            packet.ReadInt32("Unk Int32");
+            packet.ReadInt32("Unk Int32");
+            packet.ReadInt32("Unk Int32");
+        }
+
+        [Parser(Opcode.SMSG_REQUEST_CEMETERY_LIST_RESPONSE)] // 4.3.4
+        public static void HandleRequestCemeteryListResponse(Packet packet)
+        {
+            packet.ReadBit("Unk Bit");
+            var count = packet.ReadBits("Count", 24);
+            for (int i = 0; i < count; ++i)
+                packet.ReadInt32("Cemetery Id", i); // not confirmed
+        }
+
+        [Parser(Opcode.SMSG_FORCE_SET_VEHICLE_REC_ID)] // 4.3.4
+        public static void HandleForceSetVehicleRecId(Packet packet)
+        {
+            packet.ReadInt32("Unk Int32 1"); // ##
+            packet.ReadInt32("Vehicle Id");
+
+            var guid = packet.StartBitStream(3, 0, 1, 7, 2, 6, 5, 4);
+            packet.ParseBitStream(guid, 5, 7, 4, 3, 2, 6, 1, 0);
+            packet.WriteGuid("Player GUID", guid);
+        }
+
+        [Parser(Opcode.CMSG_SET_VEHICLE_REC_ID_ACK)] //  4.3.4
+        public static void HandleSetVehicleRecIdAck(Packet packet)
+        {
+            var guid = new byte[8];
+            var transportGuid = new byte[8];
+            var hasTransTime2 = false;
+            var hasTransTime3 = false;
+            var hasFallDirection = false;
+            var pos = new Vector4();
+
+            pos.Z = packet.ReadSingle();
+            packet.ReadUInt32("Unk Int32 1"); // ##
+            pos.X = packet.ReadSingle();
+            pos.Y = packet.ReadSingle();
+            packet.ReadUInt32("Vehicle ID");
+            guid[7] = (byte)(packet.ReadBit() ? 1 : 0);
+            var hasMovementFlags2 = !packet.ReadBit();
+            guid[2] = (byte)(packet.ReadBit() ? 1 : 0);
+            var hasFallData = packet.ReadBit("Has fall data");
+            var hasO = !packet.ReadBit();
+            packet.ReadBit("Has Spline");
+            var hasMovementFlags = !packet.ReadBit();
+            var hasTrans = packet.ReadBit("Has transport");
+            packet.ReadBit();
+            var hasPitch = !packet.ReadBit("Has pitch");
+            var hasSplineElev = !packet.ReadBit("Has Spline Elevation");
+            var hasTime = !packet.ReadBit("Has timestamp");
+            guid[6] = (byte)(packet.ReadBit() ? 1 : 0);
+            guid[0] = (byte)(packet.ReadBit() ? 1 : 0);
+            guid[3] = (byte)(packet.ReadBit() ? 1 : 0);
+            guid[1] = (byte)(packet.ReadBit() ? 1 : 0);
+            guid[5] = (byte)(packet.ReadBit() ? 1 : 0);
+            guid[4] = (byte)(packet.ReadBit() ? 1 : 0);
+
+            if (hasTrans)
+            {
+                transportGuid[7] = (byte)(packet.ReadBit() ? 1 : 0);
+                transportGuid[6] = (byte)(packet.ReadBit() ? 1 : 0);
+                transportGuid[0] = (byte)(packet.ReadBit() ? 1 : 0);
+                transportGuid[4] = (byte)(packet.ReadBit() ? 1 : 0);
+                transportGuid[3] = (byte)(packet.ReadBit() ? 1 : 0);
+                transportGuid[2] = (byte)(packet.ReadBit() ? 1 : 0);
+                transportGuid[5] = (byte)(packet.ReadBit() ? 1 : 0);
+                transportGuid[1] = (byte)(packet.ReadBit() ? 1 : 0);
+                hasTransTime3 = packet.ReadBit();
+                hasTransTime2 = packet.ReadBit();
+            }
+
+            if (hasMovementFlags)
+                packet.ReadEnum<MovementFlag>("Movement Flags", 30);
+
+            if (hasFallData)
+                hasFallDirection = packet.ReadBit();
+
+            if (hasMovementFlags2)
+                packet.ReadEnum<MovementFlagExtra>("Extra Movement Flags", 12);
+
+            if (guid[5] != 0) guid[5] ^= packet.ReadByte();
+            if (guid[3] != 0) guid[3] ^= packet.ReadByte();
+            if (guid[7] != 0) guid[7] ^= packet.ReadByte();
+            if (guid[0] != 0) guid[0] ^= packet.ReadByte();
+            if (guid[6] != 0) guid[6] ^= packet.ReadByte();
+            if (guid[4] != 0) guid[4] ^= packet.ReadByte();
+            if (guid[1] != 0) guid[1] ^= packet.ReadByte();
+            if (guid[2] != 0) guid[2] ^= packet.ReadByte();
+
+            if (hasFallData)
+            {
+                if (hasFallDirection)
+                {
+                    packet.ReadSingle("Fall Sin");
+                    packet.ReadSingle("Horizontal Speed");
+                    packet.ReadSingle("Fall Cos");
+                }
+
+                packet.ReadUInt32("Fall time");
+                packet.ReadSingle("Vertical Speed");
+            }
+
+            if (hasTrans)
+            {
+                var tpos = new Vector4();
+
+                if (transportGuid[4] != 0) transportGuid[4] ^= packet.ReadByte();
+                if (transportGuid[5] != 0) transportGuid[5] ^= packet.ReadByte();
+                tpos.O = packet.ReadSingle();
+                tpos.X = packet.ReadSingle();
+                tpos.Z = packet.ReadSingle();
+
+                if (hasTransTime3)
+                    packet.ReadUInt32("Transport time 3");
+
+                if (transportGuid[0] != 0) transportGuid[0] ^= packet.ReadByte();
+                if (transportGuid[7] != 0) transportGuid[7] ^= packet.ReadByte();
+                if (transportGuid[3] != 0) transportGuid[3] ^= packet.ReadByte();
+                tpos.Y = packet.ReadSingle();
+                packet.ReadUInt32("Transport time");
+                packet.ReadSByte("Transport seat");
+
+                if (transportGuid[2] != 0) transportGuid[2] ^= packet.ReadByte();
+                if (transportGuid[1] != 0) transportGuid[1] ^= packet.ReadByte();
+
+                if (hasTransTime2)
+                    packet.ReadUInt32("Transport time 2");
+
+                if (transportGuid[6] != 0) transportGuid[6] ^= packet.ReadByte();
+
+                packet.WriteGuid("Transport Guid", transportGuid);
+                packet.WriteLine("Transport Position: {0}", tpos);
+            }
+
+            if (hasTime)
+                packet.ReadUInt32("Timestamp");
+            if (hasO)
+                pos.O = packet.ReadSingle();
+            if (hasSplineElev)
+                packet.ReadSingle("Spline elevation");
+            if (hasPitch)
+                packet.ReadSingle("Pitch");
+
+            packet.WriteGuid("Guid", guid);
+            packet.WriteLine("Position: {0}", pos);
+        }
+
+        [Parser(Opcode.SMSG_MEETINGSTONE_IN_PROGRESS)]
+        public static void HandleMeetingstoneInProgress(Packet packet)
+        {
+            packet.ReadInt32("Unk Int32");
+        }
+
+        [Parser(Opcode.SMSG_UNIT_HEALTH_FREQUENT)]
+        public static void HandleUnitHealthFrequent(Packet packet)
+        {
+            packet.ReadPackedGuid("Guid");
+            packet.ReadInt32("New Health Value");
+        }
+
+        [Parser(Opcode.SMSG_STREAMING_MOVIE)]
+        public static void HandleStreamingMovie(Packet packet)
+        {
+            var count = packet.ReadBits("Count", 25);
+            for (int i = 0; i < count; ++i)
+                packet.ReadInt16("File Data ID");
+        }
+
+        [Parser(Opcode.SMSG_WEEKLY_LAST_RESET)]
+        public static void HandleWeeklyLastReset(Packet packet)
+        {
+            packet.ReadTime("Date");
         }
 
         [Parser(Opcode.SMSG_MINIGAME_STATE)]
@@ -763,7 +1031,7 @@ namespace WowPacketParser.Parsing.Parsers
         [Parser(Opcode.SMSG_FORCE_SEND_QUEUED_PACKETS)]
         [Parser(Opcode.SMSG_GOSSIP_COMPLETE)]
         [Parser(Opcode.SMSG_CALENDAR_CLEAR_PENDING_ACTION)]
-        [Parser(Opcode.CMSG_LFG_LEAVE)]
+        [Parser(Opcode.CMSG_LFG_LEAVE, ClientVersionBuild.Zero, ClientVersionBuild.V4_3_4_15595)]
         [Parser(Opcode.CMSG_GROUP_DISBAND)]
         [Parser(Opcode.SMSG_CANCEL_COMBAT)]
         [Parser(Opcode.CMSG_ATTACKSTOP)]
@@ -794,8 +1062,20 @@ namespace WowPacketParser.Parsing.Parsers
         [Parser(Opcode.CMSG_MEETINGSTONE_INFO)]
         [Parser(Opcode.CMSG_RETURN_TO_GRAVEYARD)]
         [Parser(Opcode.CMSG_BATTLEFIELD_REQUEST_SCORE_DATA)]
-        [Parser(Opcode.CMSG_WORLD_PORT_RESPONSE)]
         [Parser(Opcode.CMSG_UI_TIME_REQUEST)]
+        [Parser(Opcode.CMSG_UNREGISTER_ALL_ADDON_PREFIXES)]
+        [Parser(Opcode.CMSG_QUERY_BATTLEFIELD_STATE)]
+        [Parser(Opcode.CMSG_REQUEST_CATEGORY_COOLDOWNS)]
+        [Parser(Opcode.CMSG_REQUEST_CEMETERY_LIST)]
+        [Parser(Opcode.CMSG_REQUEST_RESEARCH_HISTORY)]
+        [Parser(Opcode.CMSG_GROUP_REQUEST_JOIN_UPDATES)]
+        [Parser(Opcode.CMSG_REQUEST_RATED_BG_STATS)]
+        [Parser(Opcode.CMSG_COMPLETE_MOVIE)]
+        [Parser(Opcode.CMSG_GUILD_EVENT_LOG_QUERY)]
+        [Parser(Opcode.SMSG_WEEKLY_RESET_CURRENCY)]
+        [Parser(Opcode.CMSG_PVP_LOG_DATA)]
+        [Parser(Opcode.CMSG_REQUEST_PVP_REWARDS)]
+        [Parser(Opcode.CMSG_USED_FOLLOW)]
         public static void HandleZeroLengthPackets(Packet packet)
         {
         }

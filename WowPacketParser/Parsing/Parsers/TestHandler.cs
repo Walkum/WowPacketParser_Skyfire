@@ -5,6 +5,13 @@ namespace WowPacketParser.Parsing.Parsers
 {
     public static class TestHandler
     {
+        [Parser(17205)] // 4.3.4
+        public static void Handle17205(Packet packet)
+        {
+            packet.ReadPackedGuid("Guid");
+            packet.ReadInt32("Unk");
+        }
+
         [Parser(62540)]
         public static void Handle62540(Packet packet)
         {
@@ -29,41 +36,6 @@ namespace WowPacketParser.Parsing.Parsers
 
             for (var i = 0; i < count; i++)
                 packet.ReadInt64("Unk");
-        }
-
-        [Parser(41694)]
-        public static void Handle41694(Packet packet)
-        {
-            var count = packet.ReadInt32("Count");
-
-            for (var i = 0; i < count; i++)
-                packet.ReadInt32("Unk");
-
-            for (var i = 0; i < count; i++)
-                packet.ReadGuid("Unk");
-
-            for (var i = 0; i < count; i++)
-            {
-                var count2 = packet.ReadInt32("Unk");
-
-                for (var j = 0; j < count2; j++)
-                    packet.ReadInt64("Unk");
-            }
-
-            for (var i = 0; i < count; i++)
-                packet.ReadInt32("Unk");
-
-            for (var i = 0; i < count; i++)
-            {
-                packet.ReadInt32("Unk");
-                packet.ReadInt32("Unk");
-            }
-
-            for (var i = 0; i < count; i++)
-                packet.ReadInt32("Unk");
-
-            for (var i = 0; i < count; i++)
-                packet.ReadPackedTime("Time");
         }
 
         [Parser(30332)]
@@ -144,7 +116,7 @@ namespace WowPacketParser.Parsing.Parsers
 
             packet.ParseBitStream(guid, 0, 3, 7, 6);
 
-            packet.ToGuid("Unk Guid?", guid);
+            packet.WriteGuid("Unk Guid?", guid);
         }
     }
 }

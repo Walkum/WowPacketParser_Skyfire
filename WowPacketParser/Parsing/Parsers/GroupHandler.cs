@@ -2,17 +2,26 @@ using System;
 using WowPacketParser.Enums;
 using WowPacketParser.Enums.Version;
 using WowPacketParser.Misc;
-using Guid = WowPacketParser.Misc.Guid;
 
 namespace WowPacketParser.Parsing.Parsers
 {
     public static class GroupHandler
     {
-        [Parser(Opcode.CMSG_GROUP_SET_ROLES)]
+        [Parser(Opcode.CMSG_GROUP_SET_ROLES, ClientVersionBuild.Zero, ClientVersionBuild.V4_3_4_15595)]
         public static void HandleGroupSetRoles(Packet packet)
         {
             packet.ReadUInt32("Role");
             packet.ReadGuid("GUID");
+        }
+
+        [Parser(Opcode.CMSG_GROUP_SET_ROLES, ClientVersionBuild.V4_3_4_15595)]
+        public static void HandleGroupSetRoles434(Packet packet)
+        {
+            packet.ReadEnum<LfgRoleFlag>("Role", TypeCode.Int32);
+            var guid = packet.StartBitStream(2, 6, 3, 7, 5, 1, 0, 4);
+            packet.ParseBitStream(guid, 6, 4, 1, 3, 0, 5, 2, 7);
+            packet.WriteGuid("Guid", guid);
+            
         }
 
         [Parser(Opcode.SMSG_GROUP_LIST)]
@@ -370,10 +379,34 @@ namespace WowPacketParser.Parsing.Parsers
             if (guidBytes[3] != 0) guidBytes[3] ^= packet.ReadByte();
 
             // Non-zero in cross realm parties
-            packet.WriteLine("GUID: {0}", new Guid(BitConverter.ToUInt64(guidBytes, 0)));
+            packet.WriteGuid("Guid", guidBytes);
         }
 
-        [Parser(Opcode.SMSG_GROUP_INVITE)]
+        [Parser(Opcode.CMSG_GROUP_INVITE, ClientVersionBuild.V4_3_4_15595)]
+        public static void HandleGroupInvite434(Packet packet)
+        {
+            packet.ReadInt32("Unk Int32");
+            packet.ReadInt32("Unk Int32");
+            var strLen = packet.ReadBits(9);
+            var guid = new byte[8];
+            guid[2] = packet.ReadBit().ToByte();
+            guid[7] = packet.ReadBit().ToByte();
+            guid[3] = packet.ReadBit().ToByte();
+            var nameLen = packet.ReadBits(10);
+            guid[5] = packet.ReadBit().ToByte();
+            guid[4] = packet.ReadBit().ToByte();
+            guid[6] = packet.ReadBit().ToByte();
+            guid[0] = packet.ReadBit().ToByte();
+            guid[1] = packet.ReadBit().ToByte();
+
+            packet.ParseBitStream(guid, 4, 7, 6);
+            packet.ReadWoWString("Name", nameLen);
+            packet.ReadWoWString("Realm Name", strLen);
+            packet.ParseBitStream(guid, 1, 0, 5, 3, 2);
+            packet.WriteGuid("Guid", guid);
+        }
+
+        [Parser(Opcode.SMSG_GROUP_INVITE, ClientVersionBuild.Zero, ClientVersionBuild.V4_3_4_15595)]
         public static void HandleGroupInviteResponse(Packet packet)
         {
             packet.ReadBoolean("invited/already in group flag?");
@@ -385,6 +418,12 @@ namespace WowPacketParser.Parsing.Parsers
 
             packet.ReadInt32("Unk Int32 2");
         }
+
+        //[Parser(Opcode.SMSG_GROUP_INVITE, ClientVersionBuild.V4_3_4_15595)]
+        //public static void HandleGroupInvite434(Packet packet)
+        //{
+        //    // sub_6DAF30
+        //}
 
         [Parser(Opcode.CMSG_GROUP_UNINVITE_GUID)]
         public static void HandleGroupUninviteGuid(Packet packet)
@@ -519,6 +558,66 @@ namespace WowPacketParser.Parsing.Parsers
             packet.ReadByte("Assigment");
             packet.ReadBoolean("Apply");
             packet.ReadGuid("Guid");
+        }
+
+        [Parser(Opcode.SMSG_GROUP_SET_ROLE)]
+        public static void HandleGroupSetRole(Packet packet)
+        {
+            var guid1 = new byte[8];
+            var guid2 = new byte[8];
+            guid1[1] = packet.ReadBit().ToByte();
+            guid2[0] = packet.ReadBit().ToByte();
+            guid2[2] = packet.ReadBit().ToByte();
+            guid2[4] = packet.ReadBit().ToByte();
+            guid2[7] = packet.ReadBit().ToByte();
+            guid2[3] = packet.ReadBit().ToByte();
+            guid1[7] = packet.ReadBit().ToByte();
+            guid2[5] = packet.ReadBit().ToByte();
+
+            guid1[5] = packet.ReadBit().ToByte();
+            guid1[4] = packet.ReadBit().ToByte();
+            guid1[3] = packet.ReadBit().ToByte();
+            guid2[6] = packet.ReadBit().ToByte();
+            guid1[2] = packet.ReadBit().ToByte();
+            guid1[6] = packet.ReadBit().ToByte();
+            guid2[1] = packet.ReadBit().ToByte();
+            guid1[0] = packet.ReadBit().ToByte();
+
+            if (guid1[7] != 0) guid1[7] ^= packet.ReadByte();
+            if (guid2[3] != 0) guid2[3] ^= packet.ReadByte();
+            if (guid1[6] != 0) guid1[6] ^= packet.ReadByte();
+            if (guid2[4] != 0) guid2[4] ^= packet.ReadByte();
+            if (guid2[0] != 0) guid2[0] ^= packet.ReadByte();
+            packet.ReadEnum<LfgRoleFlag>("New Roles", TypeCode.Int32);
+            if (guid2[6] != 0) guid2[6] ^= packet.ReadByte();
+            if (guid2[2] != 0) guid2[2] ^= packet.ReadByte();
+            if (guid1[0] != 0) guid1[0] ^= packet.ReadByte();
+
+            if (guid1[4] != 0) guid1[4] ^= packet.ReadByte();
+            if (guid2[1] != 0) guid2[1] ^= packet.ReadByte();
+            if (guid1[3] != 0) guid1[3] ^= packet.ReadByte();
+            if (guid1[5] != 0) guid1[5] ^= packet.ReadByte();
+            if (guid1[2] != 0) guid1[2] ^= packet.ReadByte();
+            if (guid2[5] != 0) guid2[5] ^= packet.ReadByte();
+            if (guid2[7] != 0) guid2[7] ^= packet.ReadByte();
+            if (guid1[1] != 0) guid1[1] ^= packet.ReadByte();
+
+            packet.ReadEnum<LfgRoleFlag>("Old Roles", TypeCode.Int32);
+            packet.WriteGuid("Assigner Guid", guid1);
+            packet.WriteGuid("Target Guid", guid2);
+        }
+
+        [Parser(Opcode.SMSG_RAID_MARKERS_CHANGED)]
+        public static void HandleRaidMarkersChanged(Packet packet)
+        {
+            packet.ReadUInt32("Unk Uint32");
+        }
+
+        [Parser(Opcode.CMSG_GROUP_INVITE_RESPONSE)]
+        public static void HandleGroupInviteResponse434(Packet packet)
+        {
+            var bit1 = packet.ReadBit("Accepted");
+            if (bit1) packet.ReadUInt32("Unk Uint32");
         }
     }
 }

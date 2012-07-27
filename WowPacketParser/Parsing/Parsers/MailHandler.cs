@@ -1,7 +1,6 @@
 using System;
 using WowPacketParser.Enums;
 using WowPacketParser.Misc;
-using Guid=WowPacketParser.Misc.Guid;
 
 namespace WowPacketParser.Parsing.Parsers
 {
@@ -21,14 +20,22 @@ namespace WowPacketParser.Parsing.Parsers
         }
 
         [Parser(Opcode.CMSG_MAIL_TAKE_MONEY)]
-        [Parser(Opcode.CMSG_MAIL_MARK_AS_READ)]
-        [Parser(Opcode.CMSG_MAIL_CREATE_TEXT_ITEM)]
+        [Parser(Opcode.CMSG_MAIL_MARK_AS_READ, ClientVersionBuild.Zero, ClientVersionBuild.V4_3_4_15595)]
+        [Parser(Opcode.CMSG_MAIL_CREATE_TEXT_ITEM, ClientVersionBuild.Zero, ClientVersionBuild.V4_3_4_15595)]
         public static void HandleTakeMoney(Packet packet)
         {
             packet.ReadGuid("Mailbox GUID");
             packet.ReadUInt32("Mail Id");
             if (ClientVersion.AddedInVersion(ClientVersionBuild.V4_0_6_13596)) // need correct version
                 packet.ReadUInt64("Money");
+        }
+
+        [Parser(Opcode.CMSG_MAIL_MARK_AS_READ, ClientVersionBuild.V4_3_4_15595)]
+        [Parser(Opcode.CMSG_MAIL_CREATE_TEXT_ITEM, ClientVersionBuild.V4_3_4_15595)]
+        public static void HandleMarkMail(Packet packet)
+        {
+            packet.ReadGuid("Mailbox GUID");
+            packet.ReadUInt32("Mail Id");
         }
 
         [Parser(Opcode.CMSG_MAIL_DELETE)]
@@ -74,7 +81,8 @@ namespace WowPacketParser.Parsing.Parsers
                     case MailType.Item:
                         packet.ReadEntryWithName<Int32>(StoreNameType.Item, "Entry", i);
                         break;
-                    default:
+                    case (MailType)1:
+                    case MailType.Auction:
                         packet.ReadInt32("Entry", i);
                         break;
                 }
@@ -87,15 +95,15 @@ namespace WowPacketParser.Parsing.Parsers
                 if (ClientVersion.RemovedInVersion(ClientVersionBuild.V3_3_0_10958))
                     packet.ReadUInt32("Item Text Id", i);
 
-                packet.ReadUInt32("Unk uint32", i); // package.dbc?
-                packet.ReadUInt32("Stationery", i);
+                packet.ReadUInt32("Package", i); // Package.dbc ID
+                packet.ReadUInt32("Stationery", i); // Stationary.dbc ID
                 if (ClientVersion.AddedInVersion(ClientVersionBuild.V4_2_2_14545))
                     packet.ReadUInt64("Money", i);
                 else
                     packet.ReadUInt32("Money", i);
                 packet.ReadUInt32("Flags", i);
-                packet.ReadSingle("Time?", i);
-                packet.ReadUInt32("Template Id", i);
+                packet.ReadSingle("Time", i);
+                packet.ReadUInt32("Template Id", i); // MailTemplate.dbc ID
                 packet.ReadCString("Subject", i);
 
                 if (ClientVersion.AddedInVersion(ClientVersionBuild.V3_3_0_10958))
@@ -113,6 +121,9 @@ namespace WowPacketParser.Parsing.Parsers
                         enchantmentCount = 7;
                     if (ClientVersion.AddedInVersion(ClientType.Cataclysm))
                         enchantmentCount = 9;
+                    if (ClientVersion.AddedInVersion(ClientVersionBuild.V4_3_0_15005))
+                        enchantmentCount = 10;
+
                     for (var k = 0; k < enchantmentCount; ++k)
                     {
                         packet.ReadUInt32("Item Enchantment Id", i, j, k);
@@ -150,16 +161,9 @@ namespace WowPacketParser.Parsing.Parsers
             var count = packet.ReadUInt32("Count");
             for (var i = 0; i < count; ++i)
             {
-                var data = packet.ReadUInt64();
-                if (data == 0 || ((data & 0xFFFFFFFF00000000) >> 32) == 0)
-                    packet.WriteLine("Entry: " + ((data & 0x00000000FFFFFFFF) >> 32));
-                else
-                {
-                    var guid = new Guid(data);
-                    packet.WriteLine("[" + i + "] GUID: " + guid);
-                }
-                packet.ReadUInt32("COD", i);
-                packet.ReadUInt32("Unk uint32", i);
+                packet.ReadUInt64("GUID", i);
+                packet.ReadUInt32("Sender Id", i);
+                packet.ReadUInt32("Message type", i);
                 packet.ReadUInt32("Stationery", i);
                 packet.ReadSingle("Time?", i);
             }
