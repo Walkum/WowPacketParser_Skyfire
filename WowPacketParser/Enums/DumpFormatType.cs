@@ -4,6 +4,10 @@
     {
         None,           // No dump at all
         Text,
-        Pkt
+        Pkt,
+        PktSplit,
+        SqlOnly,
+        SniffDataOnly,
+        StatisticsPreParse
     }
 }

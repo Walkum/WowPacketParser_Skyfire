@@ -87,6 +87,7 @@ namespace WowPacketParser.Parsing.Parsers
             ReadQueryHeader(ref packet);
         }
 
+        [HasSniffData]
         [Parser(Opcode.SMSG_CREATURE_QUERY_RESPONSE)]
         public static void HandleCreatureQueryResponse(Packet packet)
         {
@@ -104,6 +105,9 @@ namespace WowPacketParser.Parsing.Parsers
 
             creature.SubName = packet.ReadCString("Sub Name");
 
+            if (ClientVersion.AddedInVersion(ClientVersionBuild.V5_0_5_16048))
+                packet.ReadCString("Unk String");
+
             creature.IconName = packet.ReadCString("Icon Name");
 
             creature.TypeFlags = packet.ReadEnum<CreatureTypeFlag>("Type Flags", TypeCode.UInt32);
@@ -119,8 +123,9 @@ namespace WowPacketParser.Parsing.Parsers
 
             if (ClientVersion.AddedInVersion(ClientVersionBuild.V3_1_0_9767))
             {
-                creature.KillCredit1 = packet.ReadUInt32("Kill Credit 1");
-                creature.KillCredit2 = packet.ReadUInt32("Kill Credit 2");
+                creature.KillCredits = new uint[2];
+                for (var i = 0; i < 2; ++i)
+                    creature.KillCredits[i] = packet.ReadUInt32("Kill Credit", i);
             }
             else // Did they stop sending pet spell data after 3.1?
             {
@@ -169,6 +174,7 @@ namespace WowPacketParser.Parsing.Parsers
             ReadQueryHeader(ref packet);
         }
 
+        [HasSniffData]
         [Parser(Opcode.SMSG_PAGE_TEXT_QUERY_RESPONSE)]
         public static void HandlePageTextResponse(Packet packet)
         {
@@ -176,7 +182,7 @@ namespace WowPacketParser.Parsing.Parsers
 
             var entry = packet.ReadUInt32("Entry");
 
-            pageText.Text = packet.ReadCString("Page Tex");
+            pageText.Text = packet.ReadCString("Page Text");
 
             pageText.NextPageId = packet.ReadUInt32("Next Page");
 
@@ -191,6 +197,7 @@ namespace WowPacketParser.Parsing.Parsers
             ReadQueryHeader(ref packet);
         }
 
+        [HasSniffData]
         [Parser(Opcode.SMSG_NPC_TEXT_UPDATE)]
         public static void HandleNpcTextUpdate(Packet packet)
         {

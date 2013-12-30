@@ -2,17 +2,18 @@ using System;
 using System.Diagnostics.CodeAnalysis;
 using System.IO;
 using System.Text;
-using ICSharpCode.SharpZipLib.Zip.Compression;
 using WowPacketParser.Enums;
 using WowPacketParser.Store;
 using WowPacketParser.Store.Objects;
+using WowPacketParser.Parsing.Parsers;
+using Ionic.Zlib;
 
 namespace WowPacketParser.Misc
 {
     public sealed partial class Packet : BinaryReader
     {
-        private static readonly bool SniffData = Settings.SQLOutput.HasAnyFlag(SQLOutputFlags.SniffData);
-        private static readonly bool SniffDataOpcodes = Settings.SQLOutput.HasAnyFlag(SQLOutputFlags.SniffDataOpcodes);
+        private static readonly bool SniffData = Settings.SQLOutputFlag.HasAnyFlagBit(SQLOutput.SniffData) || Settings.DumpFormat == DumpFormatType.SniffDataOnly;
+        private static readonly bool SniffDataOpcodes = Settings.SQLOutputFlag.HasAnyFlagBit(SQLOutput.SniffDataOpcodes) || Settings.DumpFormat == DumpFormatType.SniffDataOnly;
 
         private static DateTime _firstPacketTime;
 
@@ -63,6 +64,7 @@ namespace WowPacketParser.Misc
         public string FileName { get; private set; }
         public ParsedStatus Status { get; set; }
         public bool WriteToFile { get; private set; }
+        public int ConnectionIndex { get; set; }
 
         public void AddSniffData(StoreNameType type, int id, string data)
         {
@@ -81,35 +83,124 @@ namespace WowPacketParser.Misc
             var item = new SniffData
             {
                 FileName = FileName,
-                TimeStamp = Utilities.GetUnixTimeFromDateTime(Time),
                 ObjectType = type,
                 Id = id,
                 Data = data,
-                Number = Number,
             };
 
             Storage.SniffData.Add(item, TimeSpan);
         }
 
-        public Packet Inflate(int inflatedSize)
+        public bool TryInflate(int inflatedSize, int index, byte[] arr, ref byte[] newarr)
+        {
+            try
+            {
+                if (!SessionHandler.z_streams.ContainsKey(index))
+                    SessionHandler.z_streams[index] = new ZlibCodec(CompressionMode.Decompress);
+                SessionHandler.z_streams[index].InputBuffer = arr;
+                SessionHandler.z_streams[index].NextIn = 0;
+                SessionHandler.z_streams[index].AvailableBytesIn = arr.Length;
+                SessionHandler.z_streams[index].OutputBuffer = newarr;
+                SessionHandler.z_streams[index].NextOut = 0;
+                SessionHandler.z_streams[index].AvailableBytesOut = inflatedSize;
+                SessionHandler.z_streams[index].Inflate(FlushType.Sync);
+                return true;
+            }
+            catch (Ionic.Zlib.ZlibException)
+            {
+                return false;
+            }
+        }
+
+        public Packet Inflate(int inflatedSize, bool keepStream = true)
         {
             var arr = ReadToEnd();
             var newarr = new byte[inflatedSize];
-            try
+
+            if (ClientVersion.RemovedInVersion(ClientVersionBuild.V4_3_0_15005))
+                keepStream = false;
+
+            if (keepStream)
             {
-                var inflater = new Inflater();
-                inflater.SetInput(arr, 0, arr.Length);
-                inflater.Inflate(newarr, 0, inflatedSize);
+                int idx = ConnectionIndex;
+                while (!TryInflate(inflatedSize, idx, arr, ref newarr))
+                    idx += 1;
             }
-            catch (ICSharpCode.SharpZipLib.SharpZipBaseException)
+            else
             {
-                var inflater = new Inflater(true);
-                inflater.SetInput(arr, 0, arr.Length);
-                inflater.Inflate(newarr, 0, inflatedSize);
+                /*try
+                {
+                    var inflater = new Inflater(true);
+                    inflater.SetInput(arr, 0, arr.Length);
+                    inflater.Inflate(newarr, 0, inflatedSize);
+                }
+                catch (ICSharpCode.SharpZipLib.SharpZipBaseException)
+                {
+                    var inflater = new Inflater(true);
+                    inflater.SetInput(arr, 0, arr.Length);
+                    inflater.Inflate(newarr, 0, inflatedSize);
+                }*/
+                ZlibCodec stream = new ZlibCodec(CompressionMode.Decompress);
+                stream.InputBuffer = arr;
+                stream.NextIn = 0;
+                stream.AvailableBytesIn = arr.Length;
+                stream.OutputBuffer = newarr;
+                stream.NextOut = 0;
+                stream.AvailableBytesOut = inflatedSize;
+                stream.Inflate(FlushType.None);
+                stream.Inflate(FlushType.Finish);
+                stream.EndInflate();
             }
 
             // Cannot use "using" here
             var pkt = new Packet(newarr, Opcode, Time, Direction, Number, Writer, FileName);
+            pkt.ConnectionIndex = ConnectionIndex;
+            return pkt;
+        }
+
+        public Packet Inflate(int arrSize, int inflatedSize, bool keepStream = true)
+        {
+            var arr = ReadBytes(arrSize);
+            var newarr = new byte[inflatedSize];
+
+            if (ClientVersion.RemovedInVersion(ClientVersionBuild.V4_3_0_15005))
+                keepStream = false;
+
+            if (keepStream)
+            {
+                int idx = ConnectionIndex;
+                while (!TryInflate(inflatedSize, idx, arr, ref newarr))
+                    idx += 1;
+            }
+            else
+            {
+                /*try
+                {
+                    var inflater = new Inflater(true);
+                    inflater.SetInput(arr, 0, arr.Length);
+                    inflater.Inflate(newarr, 0, inflatedSize);
+                }
+                catch (ICSharpCode.SharpZipLib.SharpZipBaseException)
+                {
+                    var inflater = new Inflater(true);
+                    inflater.SetInput(arr, 0, arr.Length);
+                    inflater.Inflate(newarr, 0, inflatedSize);
+                }*/
+                ZlibCodec stream = new ZlibCodec(CompressionMode.Decompress);
+                stream.InputBuffer = arr;
+                stream.NextIn = 0;
+                stream.AvailableBytesIn = arr.Length;
+                stream.OutputBuffer = newarr;
+                stream.NextOut = 0;
+                stream.AvailableBytesOut = inflatedSize;
+                stream.Inflate(FlushType.None);
+                stream.Inflate(FlushType.Finish);
+                stream.EndInflate();
+            }
+
+            // Cannot use "using" here
+            var pkt = new Packet(newarr, Opcode, Time, Direction, Number, Writer, FileName);
+            pkt.ConnectionIndex = ConnectionIndex;
             return pkt;
         }
 
@@ -124,9 +215,9 @@ namespace WowPacketParser.Misc
 
         public string GetHeader(bool isMultiple = false)
         {
-            return string.Format("{0}: {1} (0x{2}) Length: {3} Time: {4} Number: {5}{6}",
+            return string.Format("{0}: {1} (0x{2}) Length: {3} ConnectionIndex: {4} Time: {5} Number: {6}{7}",
                 Direction, Enums.Version.Opcodes.GetOpcodeName(Opcode), Opcode.ToString("X4"),
-                Length, Time.ToString("MM/dd/yyyy HH:mm:ss.fff"),
+                Length, ConnectionIndex, Time.ToString("MM/dd/yyyy HH:mm:ss.fff"),
                 Number, isMultiple ? " (part of another packet)" : "");
         }
 
@@ -152,6 +243,9 @@ namespace WowPacketParser.Misc
 
         public void Write(string value)
         {
+            if (!Settings.DumpFormatWithText())
+                return;
+
             if (Writer == null)
                 Writer = new StringBuilder();
 
@@ -160,6 +254,9 @@ namespace WowPacketParser.Misc
 
         public void Write(string format, params object[] args)
         {
+            if (!Settings.DumpFormatWithText())
+                return;
+
             if (Writer == null)
                 Writer = new StringBuilder();
 
@@ -168,6 +265,9 @@ namespace WowPacketParser.Misc
 
         public void WriteLine()
         {
+            if (!Settings.DumpFormatWithText())
+                return;
+
             if (Writer == null)
                 Writer = new StringBuilder();
 
@@ -176,6 +276,9 @@ namespace WowPacketParser.Misc
 
         public void WriteLine(string value)
         {
+            if (!Settings.DumpFormatWithText())
+                return;
+
             if (Writer == null)
                 Writer = new StringBuilder();
 
@@ -184,6 +287,9 @@ namespace WowPacketParser.Misc
 
         public void WriteLine(string format, params object[] args)
         {
+            if (!Settings.DumpFormatWithText())
+                return;
+
             if (Writer == null)
                 Writer = new StringBuilder();
 
@@ -194,7 +300,9 @@ namespace WowPacketParser.Misc
         {
             if (Writer != null)
             {
-                Writer.Clear();
+                if (Settings.DumpFormatWithText())
+                    Writer.Clear();
+
                 Writer = null;
             }
 

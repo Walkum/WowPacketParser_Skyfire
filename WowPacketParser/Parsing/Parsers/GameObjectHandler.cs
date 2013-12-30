@@ -14,6 +14,7 @@ namespace WowPacketParser.Parsing.Parsers
             QueryHandler.ReadQueryHeader(ref packet);
         }
 
+        [HasSniffData]
         [Parser(Opcode.SMSG_GAMEOBJECT_QUERY_RESPONSE)]
         public static void HandleGameObjectQueryResponse(Packet packet)
         {
@@ -49,7 +50,7 @@ namespace WowPacketParser.Parsing.Parsers
                     gameObject.QuestItems[i] = (uint)packet.ReadEntryWithName<Int32>(StoreNameType.Item, "Quest Item", i);
 
             if (ClientVersion.AddedInVersion(ClientVersionBuild.V4_0_6_13596))
-                gameObject.UnknownUInt = packet.ReadUInt32("Unknown UInt32");
+                gameObject.UnknownInt = packet.ReadInt32("Unknown UInt32");
 
             packet.AddSniffData(StoreNameType.GameObject, entry.Key, "QUERY_RESPONSE");
 
@@ -87,6 +88,15 @@ namespace WowPacketParser.Parsing.Parsers
         public static void HandleGOCustomAnim(Packet packet)
         {
             packet.ReadGuid("GUID");
+            packet.ReadInt32("Anim");
+        }
+
+        [Parser(Opcode.SMSG_GAME_OBJECT_ACTIVATE_ANIM_KIT)] // 4.3.4
+        public static void HandleGOActivateAnimKit(Packet packet)
+        {
+            var guid = packet.StartBitStream(5, 1, 0, 4, 7, 2, 3, 6);
+            packet.ParseBitStream(guid, 5, 1, 0, 3, 4, 6, 2, 7);
+            packet.WriteGuid("Guid", guid);
             packet.ReadInt32("Anim");
         }
     }

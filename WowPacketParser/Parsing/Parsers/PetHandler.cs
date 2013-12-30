@@ -31,6 +31,9 @@ namespace WowPacketParser.Parsing.Parsers
             if (ClientVersion.AddedInVersion(ClientVersionBuild.V3_1_0_9767))
                 packet.ReadEnum<CreatureFamily>("Pet Family", TypeCode.UInt16); // vehicles -> 0
 
+            if (ClientVersion.AddedInVersion(ClientVersionBuild.V5_1_0_16309))
+                packet.ReadUInt16("Unk UInt16");
+
             packet.ReadUInt32("Expiration Time");
 
             ReadPetFlags(ref packet);
@@ -87,6 +90,17 @@ namespace WowPacketParser.Parsing.Parsers
                 packet.ReadUInt16("Category", i);
                 packet.ReadUInt32("Cooldown", i);
                 packet.ReadUInt32("Category Cooldown", i);
+            }
+
+            if (ClientVersion.AddedInVersion(ClientVersionBuild.V5_1_0_16309))
+            {
+                var unkLoopCounter = packet.ReadByte("Unk count");
+                for (var i = 0; i < unkLoopCounter; i++)
+                {
+                    packet.ReadUInt32("Unk UInt32 1", i);
+                    packet.ReadByte("Unk Byte", i);
+                    packet.ReadUInt32("Unk UInt32 2", i);
+                }
             }
         }
 
@@ -206,14 +220,15 @@ namespace WowPacketParser.Parsing.Parsers
                     break;
                 case PetFeedback.CantAttackTarget:
                     if (ClientVersion.AddedInVersion(ClientType.Cataclysm))
-                        packet.ReadInt32("Unk int32");
+                        packet.ReadEntryWithName<Int32>(StoreNameType.Spell, "Spell ID");    // sub_8ADA60 2nd parameter is SpellID, check sub_8B22C0
                     break;
             }
         }
 
         [Parser(Opcode.CMSG_PET_STOP_ATTACK)]
         [Parser(Opcode.CMSG_DISMISS_CRITTER)]
-        public static void HandleDismissCritter(Packet packet)
+        [Parser(Opcode.CMSG_PET_ABANDON)]
+        public static void HandlePetMiscGuid(Packet packet)
         {
             packet.ReadGuid("GUID");
         }
@@ -248,7 +263,7 @@ namespace WowPacketParser.Parsing.Parsers
             for (var i = 0; i < count; i++)
             {
                 if (ClientVersion.AddedInVersion(ClientVersionBuild.V4_2_2_14545)) // not verified
-                    packet.ReadInt32("Unk", i);
+                    packet.ReadInt32("Pet Slot", i);
 
                 packet.ReadInt32("Pet Number", i);
                 packet.ReadEntryWithName<UInt32>(StoreNameType.Unit, "Pet Entry", i);
@@ -266,8 +281,45 @@ namespace WowPacketParser.Parsing.Parsers
             packet.ReadEntryWithName<Int32>(StoreNameType.Spell, "Spell ID");
             var castFlags = packet.ReadEnum<CastFlag>("Cast Flags", TypeCode.Byte);
             SpellHandler.ReadSpellCastTargets(ref packet);
-            if (castFlags.HasAnyFlag(CastFlag.Unknown1))
+            if (castFlags.HasAnyFlag(CastFlag.HasTrajectory))
                 SpellHandler.HandleSpellMissileAndMove(ref packet);
+        }
+
+        [Parser(Opcode.CMSG_REQUEST_PET_INFO)]
+        public static void HandlePetNull(Packet packet)
+        {
+        }
+
+        [Parser(Opcode.SMSG_PET_ADDED)] // 4.3.4
+        public static void HandlePetAdded(Packet packet)
+        {
+            packet.ReadInt32("Pet Level");
+            packet.ReadInt32("Pet Slot");
+            packet.ReadByte("Stable Type");
+            packet.ReadEntryWithName<UInt32>(StoreNameType.Unit, "Entry");
+            packet.ReadInt32("Pet Number");
+
+            var len = packet.ReadBits(8);
+            packet.ReadWoWString("Pet Name", len);
+        }
+
+        [Parser(Opcode.CMSG_PET_RENAME)]
+        public static void HandlePetRename(Packet packet)
+        {
+            packet.ReadGuid("Pet Guid");
+            packet.ReadCString("Name");
+            var declined = packet.ReadBoolean("Is Declined");
+            if (declined)
+                for (var i = 0; i < 5; ++i)
+                    packet.ReadCString("Declined Name", i);
+        }
+
+        [Parser(Opcode.CMSG_PET_SPELL_AUTOCAST)]
+        public static void HandlePetSpellAutocast(Packet packet)
+        {
+            packet.ReadGuid("Pet Guid");
+            packet.ReadEntryWithName<UInt32>(StoreNameType.Spell, "Spell Id");
+            packet.ReadByte("State");
         }
     }
 }

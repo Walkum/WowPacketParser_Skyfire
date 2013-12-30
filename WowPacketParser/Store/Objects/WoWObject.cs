@@ -20,16 +20,61 @@ namespace WowPacketParser.Store.Objects
 
         public uint PhaseMask;
 
+        public bool ForceTemporarySpawn;
+
         public virtual bool IsTemporarySpawn()
         {
-            return false;
+            return ForceTemporarySpawn;
+        }
+
+        public bool IsOnTransport()
+        {
+            return Movement.TransportGuid != Guid.Empty;
         }
 
         public int GetDefaultSpawnTime()
         {
-            // If map is Eastern Kingdoms, Kalimdor, Outland, Northrend or Ebon Hold use a lower respawn time
+            // If map is Continent use a lower respawn time
             // TODO: Rank and if npc is needed for quest kill should change spawntime as well
-            return (Map == 0 || Map == 1 || Map == 530 || Map == 571 || Map == 609) ? 120 : 7200;
+            return MapIsContinent(Map) ? 120 : 7200;
         }
+
+        public int GetDefaultSpawnMask()
+        {
+            // 3 is the most common spawnmask outside of continents although it is not correct in all cases
+            // TODO: read map/instance db to guess correct spawnmask
+            return MapIsContinent(Map) ? 1 : 3;
+        }
+
+        private static bool MapIsContinent(uint mapId)
+        {
+            // TODO: remove hardcoded checks and read map dbc instead
+            switch (mapId)
+            {
+                case 0:     // Eastern Kingdoms
+                case 1:     // Kalimdor
+                case 530:   // Outland
+                case 571:   // Northrend
+                case 609:   // Ebon Hold
+                case 638:   // Gilneas 1
+                case 655:   // Gilneas 2
+                case 656:   // Gilneas 3
+                case 646:   // Deepholm
+                case 648:   // Kezan 1
+                case 659:   // Kezan 2
+                case 661:   // Kezan 3
+                case 732:   // Tol Barad
+                case 860:   // The Wandering Isle
+                case 861:   // Firelands Dailies
+                case 870:   // Pandaria
+                case 974:   // Darkmoon Faire
+                case 1064:  // Mogu Island Daily Area
+                    return true;
+                default:
+                    return false;
+            }
+        }
+
+        public virtual void LoadValuesFromUpdateFields() { }
     }
 }

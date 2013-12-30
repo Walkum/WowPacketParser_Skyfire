@@ -18,6 +18,7 @@ namespace WowPacketParser.Store.Objects
         [DBFieldName("type_flags")]
         public CreatureTypeFlag TypeFlags;
 
+        [DBFieldName("type_flags2", ClientVersionBuild.V4_0_1_13164)]
         public uint TypeFlags2;
 
         [DBFieldName("type")]
@@ -29,18 +30,16 @@ namespace WowPacketParser.Store.Objects
         [DBFieldName("rank")]
         public CreatureRank Rank;
 
-        [DBFieldName("KillCredit1")]
-        public uint KillCredit1;
+        [DBFieldName("KillCredit", 2)]
+        public uint[] KillCredits;
 
-        [DBFieldName("KillCredit2")]
-        public uint KillCredit2;
-
+        [DBFieldName("UnkInt", ClientVersionBuild.Zero, ClientVersionBuild.V3_1_0_9767)]
         public int UnkInt;
 
         [DBFieldName("PetSpellDataId")]
         public uint PetSpellData;
 
-        [DBFieldName("modelid", Count = 4)]
+        [DBFieldName("modelid", 4)]
         public uint[] DisplayIds;
 
         [DBFieldName("Health_mod")]
@@ -52,12 +51,16 @@ namespace WowPacketParser.Store.Objects
         [DBFieldName("RacialLeader")]
         public bool RacialLeader;
 
-        [DBFieldName("questItem", Count = 6)]
+        [DBFieldName("questItem", 6)]
         public uint[] QuestItems;
 
         [DBFieldName("movementId")]
         public uint MovementId;
 
+        [DBFieldName("exp_unk", ClientVersionBuild.V4_0_1_13164)]
         public ClientType Expansion;
+
+        [DBFieldName("WDBVerified")]
+        public int WDBVerified;
     }
 }

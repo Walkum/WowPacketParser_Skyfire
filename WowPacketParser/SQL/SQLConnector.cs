@@ -10,7 +10,7 @@ namespace WowPacketParser.SQL
     public static class SQLConnector
     {
         [ThreadStatic]
-        private static MySqlConnection Conn;
+        public static MySqlConnection Conn;
 
         public static bool Enabled = Settings.DBEnabled;
 
@@ -53,7 +53,10 @@ namespace WowPacketParser.SQL
             try
             {
                 using (var command = new MySqlCommand(input, Conn))
+                {
+                    command.CommandTimeout = 2147483; // max timeout val, 0 doesn't work
                     return command.ExecuteReader();
+                }
             }
             catch (Exception e)
             {

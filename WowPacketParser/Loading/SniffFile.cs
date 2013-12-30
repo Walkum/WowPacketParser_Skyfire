@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Globalization;
 using System.IO;
+using System.Linq;
 using System.Text;
 using WowPacketParser.Enums;
 using WowPacketParser.Misc;
@@ -21,13 +22,11 @@ namespace WowPacketParser.Loading
         private LinkedList<Packet> _packets;
         private readonly DumpFormatType _dumpFormat;
         private readonly string _logPrefix;
-        private readonly bool _splitOutput;
-        private readonly SQLOutputFlags _sqlOutput;
 
         private readonly LinkedList<string> _withErrorHeaders = new LinkedList<string>();
         private readonly LinkedList<string> _skippedHeaders = new LinkedList<string>();
 
-        public SniffFile(string fileName, DumpFormatType dumpFormat = DumpFormatType.Text, bool splitOutput = false, Tuple<int, int> number = null, SQLOutputFlags sqlOutput = SQLOutputFlags.None)
+        public SniffFile(string fileName, DumpFormatType dumpFormat = DumpFormatType.Text, Tuple<int, int> number = null)
         {
             if (string.IsNullOrWhiteSpace(fileName))
                 throw new ArgumentException("fileName cannot be null, empty or whitespace.", "fileName");
@@ -35,9 +34,7 @@ namespace WowPacketParser.Loading
             _stats = new Statistics();
             _packets = null;
             _fileName = fileName;
-            _splitOutput = splitOutput;
             _dumpFormat = dumpFormat;
-            _sqlOutput = sqlOutput;
 
             _outFileName = Path.ChangeExtension(fileName, null) + "_parsed.txt";
 
@@ -51,9 +48,55 @@ namespace WowPacketParser.Loading
         {
             switch (_dumpFormat)
             {
+                case DumpFormatType.StatisticsPreParse:
+                {
+                    if (!ReadPackets())
+                        return;
+
+                    if (_packets.Count == 0)
+                        return;
+
+                    // CSV format:
+                    // - sniff file name
+                    // - time of first packet
+                    // - time of last packet
+                    // - sniff duration (seconds)
+                    // - packet count
+                    // - total packets size (bytes)
+                    // - average packet size (bytes)
+                    // - smaller packet size (bytes)
+                    // - larger packet size (bytes)
+
+                    Trace.WriteLine(String.Format("{0};{1};{2};{3};{4};{5};{6};{7};{8}",
+                        _fileName,
+                        _packets.First.Value.Time,
+                        _packets.Last.Value.Time,
+                        (_packets.Last.Value.Time - _packets.First.Value.Time).TotalSeconds,
+                        _packets.Count,
+                        _packets.AsParallel().Sum(packet => packet.Length),
+                        _packets.AsParallel().Average(packet => packet.Length),
+                        _packets.AsParallel().Min(packet => packet.Length),
+                        _packets.AsParallel().Max(packet => packet.Length)));
+
+                    break;
+                }
+                case DumpFormatType.SniffDataOnly:
+                {
+                    if (!ReadPackets())
+                        return;
+
+                    ParsePackets();
+
+                    WriteSQLs();
+
+                    GC.Collect();
+
+                    break;
+                }
+                case DumpFormatType.SqlOnly:
                 case DumpFormatType.Text:
                 {
-                    if (Utilities.FileIsInUse(_outFileName))
+                    if (Utilities.FileIsInUse(_outFileName) && Settings.DumpFormat != DumpFormatType.SqlOnly)
                     {
                         // If our dump format requires a .txt to be created,
                         // check if we can write to that .txt before starting parsing
@@ -61,14 +104,14 @@ namespace WowPacketParser.Loading
                         return;
                     }
 
-                    Store.Store.Flags = _sqlOutput;
+                    Store.Store.SQLEnabledFlags = Settings.SQLOutputFlag;
 
                     if (!ReadPackets())
                         return;
 
                     ParsePackets();
 
-                    if (_sqlOutput != SQLOutputFlags.None)
+                    if (Settings.SQLOutputFlag != 0)
                         WriteSQLs();
 
                     if (Settings.LogPacketErrors)
@@ -83,11 +126,46 @@ namespace WowPacketParser.Loading
                     if (!ReadPackets())
                         return;
 
-                    if (_splitOutput)
-                        SplitBinaryDump();
-                    else
-                        BinaryDump();
+                    if (Settings.FilterPacketNumLow == 0 && Settings.FilterPacketNumHigh == 0 &&
+                        Settings.FilterPacketsNum < 0)
+                    {
+                        int packetsPerSplit = Math.Abs(Settings.FilterPacketsNum);
+                        int totalPackets = _packets.Count;
 
+                        int numberOfSplits = totalPackets / packetsPerSplit;
+
+                        for (int i = 0; i < numberOfSplits; ++i)
+                        {
+                            var fileNamePart = _fileName + "_part_" + (i + 1) + ".pkt";
+
+                            var packetsPart = new LinkedList<Packet>();
+
+                            for (int j = 0; j < packetsPerSplit; ++j)
+                            {
+                                if (_packets.Count == 0)
+                                    break;
+
+                                packetsPart.AddLast(_packets.First.Value);
+                                _packets.RemoveFirst();
+                            }
+
+                            BinaryDump(fileNamePart, packetsPart);
+                        }
+                    }
+                    else
+                    {
+                        var fileNameExcerpt = Path.ChangeExtension(_fileName, null) + "_excerpt.pkt";
+                        BinaryDump(fileNameExcerpt, _packets);
+                    }
+
+                    break;
+                }
+
+                case DumpFormatType.PktSplit:
+                {
+                    if (!ReadPackets())
+                        return;
+                    SplitBinaryDump();
                     break;
                 }
                 default:
@@ -138,11 +216,11 @@ namespace WowPacketParser.Loading
             Trace.WriteLine(string.Format("{0}: Parsing {1} packets. Assumed version {2}",
                     _logPrefix, packetCount, ClientVersion.VersionString));
 
-            using (var writer = new StreamWriter(_outFileName, true))
+            using (var writer = (Settings.DumpFormatWithText() ? new StreamWriter(_outFileName, true) : null))
             {
                 var i = 1;
-
-                writer.WriteLine(GetHeader());
+                if (Settings.DumpFormatWithText())
+                    writer.WriteLine(GetHeader());
 
                 _stats.SetStartTime(DateTime.Now);
                 foreach (var packet in _packets)
@@ -164,9 +242,12 @@ namespace WowPacketParser.Loading
                             _skippedHeaders.AddLast(packet.GetHeader());
                     }
 
-                    // Write to file
-                    writer.WriteLine(packet.Writer);
-                    writer.Flush();
+                    if (Settings.DumpFormatWithText())
+                    {
+                        // Write to file
+                        writer.WriteLine(packet.Writer);
+                        writer.Flush();
+                    }
 
                     // Close Writer, Stream - Dispose
                     packet.ClosePacket();
@@ -210,14 +291,13 @@ namespace WowPacketParser.Loading
             }
         }
 
-        private void BinaryDump()
+        private void BinaryDump(string fileName, ICollection<Packet> packets)
         {
-            Trace.WriteLine(string.Format("{0}: Copying {1} packets to .pkt format...", _logPrefix, _packets.Count));
-            var dumpFileName = Path.ChangeExtension(_fileName, null) + "_excerpt.pkt";
+            Trace.WriteLine(string.Format("{0}: Copying {1} packets to .pkt format...", _logPrefix, packets.Count));
 
             try
             {
-                BinaryPacketWriter.Write(SniffType.Pkt, dumpFileName, Encoding.ASCII, _packets);
+                BinaryPacketWriter.Write(SniffType.Pkt, fileName, Encoding.ASCII, packets);
             }
             catch (Exception ex)
             {
@@ -236,8 +316,11 @@ namespace WowPacketParser.Loading
             else
                 sqlFileName = Settings.SQLFileName;
 
-            Builder.DumpSQL(string.Format("{0}: Dumping sql", _logPrefix), sqlFileName, GetHeader());
-            Storage.ClearContainers();
+            if (String.IsNullOrWhiteSpace(Settings.SQLFileName))
+            {
+                Builder.DumpSQL(string.Format("{0}: Dumping sql", _logPrefix), sqlFileName, GetHeader());
+                Storage.ClearContainers();
+            }
         }
 
         private void WritePacketErrors()

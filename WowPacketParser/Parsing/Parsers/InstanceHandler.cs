@@ -6,7 +6,7 @@ namespace WowPacketParser.Parsing.Parsers
 {
     public static class InstanceHandler
     {
-        [Parser(Opcode.SMSG_UPDATE_INSTANCE_ENCOUNTER_UNIT)]
+        [Parser(Opcode.SMSG_UPDATE_INSTANCE_ENCOUNTER_UNIT, ClientVersionBuild.Zero, ClientVersionBuild.V4_3_4_15595)]
         public static void HandleUpdateInstanceEncounterUnit(Packet packet)
         {
             // Note: Enum values changed after 3.3.5a
@@ -25,6 +25,31 @@ namespace WowPacketParser.Parsing.Parsers
                     packet.ReadByte("Param 1");
                     break;
                 case EncounterFrame.UpdateObjective:
+                    packet.ReadByte("Param 1");
+                    packet.ReadByte("Param 2");
+                    break;
+            }
+        }
+
+        [Parser(Opcode.SMSG_UPDATE_INSTANCE_ENCOUNTER_UNIT, ClientVersionBuild.V4_3_4_15595)]
+        public static void HandleUpdateInstanceEncounterUnit434(Packet packet)
+        {
+            var type = packet.ReadEnum<EncounterFrame434>("Type", TypeCode.UInt32);
+            switch (type)
+            {
+                case EncounterFrame434.Engage:
+                case EncounterFrame434.Disengage:
+                case EncounterFrame434.UpdatePriority:
+                    packet.ReadPackedGuid("GUID");
+                    packet.ReadByte("Param 1");
+                    break;
+                case EncounterFrame434.SetCombatResLimit:
+                case EncounterFrame434.AddTimer:
+                case EncounterFrame434.EnableObjective:
+                case EncounterFrame434.DisableObjective:
+                    packet.ReadByte("Param 1");
+                    break;
+                case EncounterFrame434.UpdateObjective:
                     packet.ReadByte("Param 1");
                     packet.ReadByte("Param 2");
                     break;
@@ -68,6 +93,37 @@ namespace WowPacketParser.Parsing.Parsers
                     packet.ReadInt32("Time");
                     break;
                 case DifficultyChangeType.MapDifficulty:
+                    packet.ReadEnum<MapDifficulty>("Difficulty", TypeCode.Int32);
+                    break;
+            }
+        }
+
+        [Parser(Opcode.CMSG_CHANGEPLAYER_DIFFICULTY)]
+        public static void HandleChangePlayerDifficulty434(Packet packet)
+        {
+            packet.ReadEnum<MapDifficulty>("Difficulty", TypeCode.Int32);
+        }
+
+        [Parser(Opcode.SMSG_PLAYER_DIFFICULTY_CHANGE)]
+        public static void HandlePlayerDifficultyChange434(Packet packet)
+        {
+            var type = packet.ReadEnum<DifficultyChangeType434>("Change Type", TypeCode.Int32);
+            switch (type)
+            {
+                case DifficultyChangeType434.Cooldown:
+                    packet.ReadInt32("Cooldown");
+                    break;
+                case DifficultyChangeType434.Time:
+                    packet.ReadInt32("Time");
+                    break;
+                case DifficultyChangeType434.MapDifficultyRequirement:
+                    packet.ReadInt32("Map Difficulty Id");
+                    break;
+                case DifficultyChangeType434.PlayerAlreadyLocked:
+                    packet.ReadPackedGuid("Guid");
+                    break;
+                case DifficultyChangeType434.DifficultyChanged:
+                    packet.ReadInt32("Map");
                     packet.ReadEnum<MapDifficulty>("Difficulty", TypeCode.Int32);
                     break;
             }
@@ -117,6 +173,14 @@ namespace WowPacketParser.Parsing.Parsers
             }
         }
 
+        [Parser(Opcode.CMSG_SET_SAVED_INSTANCE_EXTEND)]
+        public static void HandleSetSavedInstanceExtend(Packet packet)
+        {
+            packet.ReadEntryWithName<Int32>(StoreNameType.Map, "Map Id");
+            packet.ReadEnum<MapDifficulty>("Difficulty", TypeCode.Int32);
+            packet.ReadBoolean("Extended");
+        }
+
         [Parser(Opcode.SMSG_UPDATE_INSTANCE_OWNERSHIP)]
         [Parser(Opcode.SMSG_INSTANCE_SAVE_CREATED)]
         public static void HandleUpdateInstanceOwnership(Packet packet)
@@ -130,7 +194,7 @@ namespace WowPacketParser.Parsing.Parsers
             packet.ReadEntryWithName<Int32>(StoreNameType.Map, "Map Id");
         }
 
-        [Parser(Opcode.CMSG_INSTANCE_LOCK_WARNING_RESPONSE, ClientVersionBuild.V4_3_4_15595)]
+        [Parser(Opcode.CMSG_INSTANCE_LOCK_WARNING_RESPONSE)]
         [Parser(Opcode.CMSG_INSTANCE_LOCK_RESPONSE)]
         public static void HandleInstanceLockResponse(Packet packet)
         {
@@ -144,7 +208,7 @@ namespace WowPacketParser.Parsing.Parsers
             packet.ReadInt32("Encounters Completed Mask");
             packet.ReadBoolean("Extending");
 
-            if (ClientVersion.AddedInVersion(ClientVersionBuild.V4_2_2_14545)) // guessing
+            if (ClientVersion.AddedInVersion(ClientVersionBuild.V4_0_6a_13623)) // guessing
                 packet.ReadBoolean("Locked warning"); // Displays a window asking if the player choose to join an instance which is saved.
         }
 
@@ -157,14 +221,14 @@ namespace WowPacketParser.Parsing.Parsers
                 packet.ReadEntryWithName<Int32>(StoreNameType.Map, "Map ID", i);
                 packet.ReadEnum<MapDifficulty>("Map Difficulty", TypeCode.UInt32, i);
                 if (ClientVersion.AddedInVersion(ClientVersionBuild.V4_0_6a_13623))
-                    packet.ReadUInt32("Unk1", i);
+                    packet.ReadUInt32("Heroic", i);
                 packet.ReadGuid("Instance GUID", i);
                 packet.ReadBoolean("Expired", i);
                 packet.ReadBoolean("Extended", i);
                 packet.ReadUInt32("Reset Time", i);
 
                 if (ClientVersion.AddedInVersion(ClientVersionBuild.V4_0_6a_13623))
-                    packet.ReadUInt32("Unk2", i);
+                    packet.ReadUInt32("Completed Encounters Mask", i);
             }
         }
 
@@ -273,5 +337,12 @@ namespace WowPacketParser.Parsing.Parsers
                 packet.ReadWoWString("Name", (int)strlen[i], i);
             }
         }
+
+        [Parser(Opcode.CMSG_RESET_INSTANCES)]
+        [Parser(Opcode.SMSG_UPDATE_DUNGEON_ENCOUNTER_FOR_LOOT)]
+        public static void HandleInstanceNull(Packet packet)
+        {
+        }
+
     }
 }

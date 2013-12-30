@@ -1,6 +1,6 @@
 ﻿using System;
-using System.Collections.Generic;
 using WowPacketParser.Enums;
+using WowPacketParser.Misc;
 using WowPacketParser.Store;
 using WowPacketParser.Store.Objects;
 
@@ -13,6 +13,9 @@ namespace WowPacketParser.SQL.Builders
             if (Storage.QuestTemplates.IsEmpty())
                 return String.Empty;
 
+            if (!Settings.SQLOutputFlag.HasAnyFlagBit(SQLOutput.quest_template))
+                return string.Empty;
+
             var entries = Storage.QuestTemplates.Keys();
             var templatesDb = SQLDatabase.GetDict<uint, QuestTemplate>(entries, "Id");
 
@@ -23,6 +26,9 @@ namespace WowPacketParser.SQL.Builders
         {
             if (Storage.UnitTemplates.IsEmpty())
                 return String.Empty;
+
+            if (!Settings.SQLOutputFlag.HasAnyFlagBit(SQLOutput.creature_template))
+                return string.Empty;
 
             var entries = Storage.UnitTemplates.Keys();
             var templatesDb = SQLDatabase.GetDict<uint, UnitTemplate>(entries);
@@ -35,16 +41,36 @@ namespace WowPacketParser.SQL.Builders
             if (Storage.GameObjectTemplates.IsEmpty())
                 return String.Empty;
 
-            var entries = Storage.GameObjectTemplates.Keys();
-            var tempatesDb = SQLDatabase.GetDict<uint, GameObjectTemplate>(entries);
+            if (!Settings.SQLOutputFlag.HasAnyFlagBit(SQLOutput.gameobject_template))
+                return string.Empty;
 
-            return SQLUtil.CompareDicts(Storage.GameObjectTemplates, tempatesDb, StoreNameType.GameObject);
+            var entries = Storage.GameObjectTemplates.Keys();
+            var templatesDb = SQLDatabase.GetDict<uint, GameObjectTemplate>(entries);
+
+            return SQLUtil.CompareDicts(Storage.GameObjectTemplates, templatesDb, StoreNameType.GameObject);
+        }
+
+        public static string Item()
+        {
+            if (Storage.ItemTemplates.IsEmpty())
+                return String.Empty;
+
+            if (!Settings.SQLOutputFlag.HasAnyFlagBit(SQLOutput.item_template))
+                return string.Empty;
+
+            var entries = Storage.ItemTemplates.Keys();
+            var templatesDb = SQLDatabase.GetDict<uint, ItemTemplate>(entries);
+
+            return SQLUtil.CompareDicts(Storage.ItemTemplates, templatesDb, StoreNameType.Item);
         }
 
         public static string PageText()
         {
             if (Storage.PageTexts.IsEmpty())
                 return String.Empty;
+
+            if (!Settings.SQLOutputFlag.HasAnyFlagBit(SQLOutput.page_text))
+                return string.Empty;
 
             var entries = Storage.PageTexts.Keys();
             var templatesDb = SQLDatabase.GetDict<uint, PageText>(entries);
@@ -57,41 +83,16 @@ namespace WowPacketParser.SQL.Builders
             if (Storage.NpcTexts.IsEmpty())
                 return String.Empty;
 
-            // Not TDB structure
-            const string tableName = "npc_text";
+            if (!Settings.SQLOutputFlag.HasAnyFlagBit(SQLOutput.npc_text))
+                return string.Empty;
 
-            var rows = new List<QueryBuilder.SQLInsertRow>();
-            foreach (var npcTextPair in Storage.NpcTexts)
-            {
-                var row = new QueryBuilder.SQLInsertRow();
-                var npcText = npcTextPair.Value.Item1;
+            foreach (var npcText in Storage.NpcTexts)
+                npcText.Value.Item1.ConvertToDBStruct();
 
-                row.AddValue("Id", npcTextPair.Key);
+            var entries = Storage.NpcTexts.Keys();
+            var templatesDb = SQLDatabase.GetDict<uint, NpcText>(entries, "ID");
 
-                for (var i = 0; i < npcText.Probabilities.Length; i++)
-                    row.AddValue("Probability" + (i + 1), npcText.Probabilities[i]);
-
-                for (var i = 0; i < npcText.Texts1.Length; i++)
-                    row.AddValue("Text1_" + (i + 1), npcText.Texts1[i]);
-
-                for (var i = 0; i < npcText.Texts2.Length; i++)
-                    row.AddValue("Text2_" + (i + 1), npcText.Texts2[i]);
-
-                for (var i = 0; i < npcText.Languages.Length; i++)
-                    row.AddValue("Language" + (i + 1), npcText.Languages[i]);
-
-                for (var i = 0; i < npcText.EmoteDelays[0].Length; i++)
-                    for (var j = 0; j < npcText.EmoteDelays[1].Length; j++)
-                        row.AddValue("EmoteDelay" + (i + 1) + "_" + (j + 1), npcText.EmoteDelays[i][j]);
-
-                for (var i = 0; i < npcText.EmoteIds[0].Length; i++)
-                    for (var j = 0; j < npcText.EmoteIds[1].Length; j++)
-                        row.AddValue("EmoteId" + (i + 1) + "_" + (j + 1), npcText.EmoteDelays[i][j]);
-
-                rows.Add(row);
-            }
-
-            return new QueryBuilder.SQLInsert(tableName, rows).Build();
+            return SQLUtil.CompareDicts(Storage.NpcTexts, templatesDb, StoreNameType.NpcText, "ID");
         }
     }
 }

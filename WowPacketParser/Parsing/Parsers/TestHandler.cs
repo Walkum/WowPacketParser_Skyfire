@@ -5,6 +5,39 @@ namespace WowPacketParser.Parsing.Parsers
 {
     public static class TestHandler
     {
+
+        [Parser(16423)]
+        public static void Handle16423(Packet packet)
+        {
+            if (packet.CanRead())
+                packet.ReadByte("Unk Byte");
+        }
+
+        [Parser(0x8703, ClientVersionBuild.V4_3_0_15005)] // 4.3.0
+        [Parser(0x8C1E, ClientVersionBuild.V4_3_0_15005)] // 4.3.0
+        [Parser(0x9431, ClientVersionBuild.V4_3_0_15005)] // 4.3.0
+        public static void HandleGenericCompressed(Packet packet)
+        {
+            using (var newpkt = packet.Inflate(packet.ReadInt32()))
+                newpkt.AsHex();
+        }
+
+        [Parser(18438)]
+        public static void Handle18438(Packet packet)
+        {
+            packet.ReadInt32("Unk Int 32"); //error related
+        }
+
+        [Parser(17958, ClientVersionBuild.V4_3_4_15595)] // 4.3.4
+        [Parser(18997)] // 4.3.4
+        [Parser(26389)] // 4.3.4
+        [Parser(3860)] // 4.3.4
+        public static void Handle18997(Packet packet)
+        {
+            packet.ReadPackedGuid("Guid");
+            packet.ReadInt16("AnimKit.dbc Id");
+        }
+
         [Parser(17205)] // 4.3.4
         public static void Handle17205(Packet packet)
         {
@@ -110,11 +143,17 @@ namespace WowPacketParser.Parsing.Parsers
         {
             var guid = packet.StartBitStream(3, 7, 6, 2, 5, 4, 0, 1);
 
-            packet.ParseBitStream(guid, 4, 1, 5, 2);
+            packet.ReadXORByte(guid, 4);
+            packet.ReadXORByte(guid, 1);
+            packet.ReadXORByte(guid, 5);
+            packet.ReadXORByte(guid, 2);
 
             packet.ReadInt32("Unk Int32");
 
-            packet.ParseBitStream(guid, 0, 3, 7, 6);
+            packet.ReadXORByte(guid, 0);
+            packet.ReadXORByte(guid, 3);
+            packet.ReadXORByte(guid, 7);
+            packet.ReadXORByte(guid, 6);
 
             packet.WriteGuid("Unk Guid?", guid);
         }

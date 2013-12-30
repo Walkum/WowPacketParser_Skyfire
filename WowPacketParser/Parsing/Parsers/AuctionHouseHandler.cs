@@ -45,7 +45,7 @@ namespace WowPacketParser.Parsing.Parsers
                     packet.ReadInt32("", i);
                 }
             }
-                
+
             if (ClientVersion.AddedInVersion(ClientType.Cataclysm))
             {
                 packet.ReadUInt64("Bid");
@@ -80,10 +80,10 @@ namespace WowPacketParser.Parsing.Parsers
             packet.ReadInt32("Sub Category");
             packet.ReadInt32("Quality");
             packet.ReadByte("Usable");
-            packet.ReadByte("Unk Byte 1");
+            packet.ReadBoolean("GetAll");
             if (ClientVersion.AddedInVersion(ClientVersionBuild.V4_2_2_14545))
                 packet.ReadByte("Unk Byte");
-            var count = packet.ReadByte("Unk Count");
+            var count = packet.ReadByte("Count");
             for (var i = 0; i < count; ++i)
             {
                 packet.ReadByte("Unk Byte 2", i);
@@ -109,18 +109,18 @@ namespace WowPacketParser.Parsing.Parsers
             var error = packet.ReadEnum<AuctionHouseError>("Error", TypeCode.UInt32);
 
             if (error == AuctionHouseError.Inventory)
-                packet.ReadInt32("Error Inventory Int32");
+                packet.ReadEnum<InventoryResult>("Equip Error", TypeCode.UInt32);
 
             switch (error)
             {
                 case AuctionHouseError.Ok:
                     if (action == AuctionHouseAction.Bid)
-                        packet.ReadInt64("Unknown Bid Int64");
+                        packet.ReadValue("Diff", _auctionSize);
                     break;
                 case AuctionHouseError.HigherBid:
-                    packet.ReadInt64("Unknown HigherBid Int64");
-                    packet.ReadInt32("Unknown HigherBid Int32");
-                    packet.ReadInt32("Unknown HigherBid Int32");
+                    packet.ReadGuid("Bidder");
+                    packet.ReadValue("Bid", _auctionSize);
+                    packet.ReadValue("Diff", _auctionSize);
                     break;
             }
         }
@@ -142,8 +142,8 @@ namespace WowPacketParser.Parsing.Parsers
         {
             packet.ReadUInt32("Auction ID");
             packet.ReadValue("Bid", _auctionSize);
-            packet.ReadValue("Unk 1", _auctionSize);
-            packet.ReadUInt64("Unk UInt64 2");
+            packet.ReadValue("Diff", _auctionSize);
+            packet.ReadGuid("Bidder GUID");
             packet.ReadEntryWithName<UInt32>(StoreNameType.Item, "Item Entry");
             packet.ReadUInt32("Unk UInt32 4");
             packet.ReadSingle("Unk float 5");
@@ -186,7 +186,7 @@ namespace WowPacketParser.Parsing.Parsers
                 packet.ReadUInt32("Item Suffix", i);
                 packet.ReadUInt32("Item Count", i);
                 packet.ReadInt32("Item Spell Charges", i);
-                //packet.ReadEnum<ItemFlag>("Item Flags", TypeCode.UInt32, i);
+                //packet.ReadEnum<ItemProtoFlags>("Item Flags", TypeCode.UInt32, i);
                 packet.ReadUInt32("Unk UInt32 1", i);
                 packet.ReadGuid("Owner", i);
                 packet.ReadValue("Start Bid", _auctionSize, i);
@@ -197,13 +197,16 @@ namespace WowPacketParser.Parsing.Parsers
                 packet.ReadValue("Bid", _auctionSize, i);
             }
 
-            packet.ReadUInt32("Own Count");
-            packet.ReadUInt32("Unk UInt32 1");
+            packet.ReadUInt32("Total item count");
+            packet.ReadUInt32("Desired delay time");
         }
 
         [Parser(Opcode.SMSG_AUCTION_REMOVED_NOTIFICATION)]
         public static void HandleAuctionRemovedNotification(Packet packet)
         {
+            packet.ReadInt32("Auction ID");
+            packet.ReadEntryWithName<UInt32>(StoreNameType.Item, "Item Entry");
+            packet.ReadInt32("Item Random Property ID");
         }
 
         [Parser(Opcode.CMSG_AUCTION_LIST_PENDING_SALES)]
@@ -220,7 +223,10 @@ namespace WowPacketParser.Parsing.Parsers
             {
                 packet.ReadCString("Unk String 1", i);
                 packet.ReadCString("Unk String 2", i);
-                packet.ReadUInt32("Unk UInt32 1", i);
+                if (ClientVersion.AddedInVersion(ClientVersionBuild.V4_3_4_15595))
+                    packet.ReadUInt64("Unk UInt32 1", i);
+                else
+                    packet.ReadUInt32("Unk UInt32 1", i);
                 packet.ReadUInt32("Unk UInt32 2", i);
                 packet.ReadSingle("Unk Single", i);
             }

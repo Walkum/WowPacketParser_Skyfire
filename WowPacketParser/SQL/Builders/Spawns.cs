@@ -17,6 +17,9 @@ namespace WowPacketParser.SQL.Builders
             if (units.Count == 0)
                 return string.Empty;
 
+            if (!Settings.SQLOutputFlag.HasAnyFlagBit(SQLOutput.creature))
+                return string.Empty;
+
             const string tableName = "creature";
 
             uint count = 0;
@@ -37,20 +40,36 @@ namespace WowPacketParser.SQL.Builders
 
                 var entry = uf.UInt32Value;
 
-                var spawnTimeSecs = creature.GetDefaultSpawnTime();
-                var movementType = 0; // TODO: Find a way to check if our unit got random movement
-                var spawnDist = (movementType == 1) ? 5 : 0;
+                var movementType = 0;
+                var spawnDist = 0;
+
+                if (creature.Movement.HasWpsOrRandMov)
+                {
+                    movementType = 1;
+                    spawnDist = 5;
+                }
 
                 row.AddValue("guid", "@CGUID+" + count, noQuotes: true);
                 row.AddValue("id", entry);
-                row.AddValue("map", creature.Map);
-                row.AddValue("spawnMask", 1);
+                row.AddValue("map", !creature.IsOnTransport() ? creature.Map : 0);  // TODO: query transport template for map
+                row.AddValue("spawnMask", creature.GetDefaultSpawnMask());
                 row.AddValue("phaseMask", creature.PhaseMask);
-                row.AddValue("position_x", creature.Movement.Position.X);
-                row.AddValue("position_y", creature.Movement.Position.Y);
-                row.AddValue("position_z", creature.Movement.Position.Z);
-                row.AddValue("orientation", creature.Movement.Orientation);
-                row.AddValue("spawntimesecs", spawnTimeSecs);
+                if (!creature.IsOnTransport())
+                {
+                    row.AddValue("position_x", creature.Movement.Position.X);
+                    row.AddValue("position_y", creature.Movement.Position.Y);
+                    row.AddValue("position_z", creature.Movement.Position.Z);
+                    row.AddValue("orientation", creature.Movement.Orientation);
+                }
+                else
+                {
+                    row.AddValue("position_x", creature.Movement.TransportOffset.X);
+                    row.AddValue("position_y", creature.Movement.TransportOffset.Y);
+                    row.AddValue("position_z", creature.Movement.TransportOffset.Z);
+                    row.AddValue("orientation", creature.Movement.TransportOffset.O);
+                }
+
+                row.AddValue("spawntimesecs", creature.GetDefaultSpawnTime());
                 row.AddValue("spawndist", spawnDist);
                 row.AddValue("MovementType", movementType);
                 row.Comment = StoreGetters.GetName(StoreNameType.Unit, (int)unit.Key.GetEntry(), false);
@@ -60,6 +79,11 @@ namespace WowPacketParser.SQL.Builders
                 {
                     row.CommentOut = true;
                     row.Comment += " - !!! might be temporary spawn !!!";
+                }
+                else if (creature.IsOnTransport())
+                {
+                    row.CommentOut = true;
+                    row.Comment += " - !!! on transport (NYI) !!!";
                 }
                 else
                     ++count;
@@ -71,9 +95,13 @@ namespace WowPacketParser.SQL.Builders
             }
 
             var result = new StringBuilder();
-            // delete query for GUIDs
-            var delete = new QueryBuilder.SQLDelete(Tuple.Create("@CGUID+0", "@CGUID+" + --count), "guid", tableName);
-            result.Append(delete.Build());
+
+            if (count > 0)
+            {
+                // delete query for GUIDs
+                var delete = new QueryBuilder.SQLDelete(Tuple.Create("@CGUID+0", "@CGUID+" + --count), "guid", tableName);
+                result.Append(delete.Build());
+            }
 
             var sql = new QueryBuilder.SQLInsert(tableName, rows, withDelete: false);
             result.Append(sql.Build());
@@ -83,6 +111,9 @@ namespace WowPacketParser.SQL.Builders
         public static string GameObject(Dictionary<Guid, GameObject> gameObjects)
         {
             if (gameObjects.Count == 0)
+                return string.Empty;
+
+            if (!Settings.SQLOutputFlag.HasAnyFlagBit(SQLOutput.gameobject))
                 return string.Empty;
 
             const string tableName = "gameobject";
@@ -116,13 +147,23 @@ namespace WowPacketParser.SQL.Builders
 
                 row.AddValue("guid", "@OGUID+" + count, noQuotes: true);
                 row.AddValue("id", entry);
-                row.AddValue("map", go.Map);
-                row.AddValue("spawnMask", 1);
+                row.AddValue("map", !go.IsOnTransport() ? go.Map : 0);  // TODO: query transport template for map
+                row.AddValue("spawnMask", go.GetDefaultSpawnMask());
                 row.AddValue("phaseMask", go.PhaseMask);
-                row.AddValue("position_x", go.Movement.Position.X);
-                row.AddValue("position_y", go.Movement.Position.Y);
-                row.AddValue("position_z", go.Movement.Position.Z);
-                row.AddValue("orientation", go.Movement.Orientation);
+                if (!go.IsOnTransport())
+                {
+                    row.AddValue("position_x", go.Movement.Position.X);
+                    row.AddValue("position_y", go.Movement.Position.Y);
+                    row.AddValue("position_z", go.Movement.Position.Z);
+                    row.AddValue("orientation", go.Movement.Orientation);
+                }
+                else
+                {
+                    row.AddValue("position_x", go.Movement.TransportOffset.X);
+                    row.AddValue("position_y", go.Movement.TransportOffset.Y);
+                    row.AddValue("position_z", go.Movement.TransportOffset.Z);
+                    row.AddValue("orientation", go.Movement.TransportOffset.O);
+                }
 
                 var rotation = go.GetRotation();
                 if (rotation != null && rotation.Length == 4)
@@ -156,6 +197,11 @@ namespace WowPacketParser.SQL.Builders
                     row.CommentOut = true;
                     row.Comment += " - !!! transport !!!";
                 }
+                else if (go.IsOnTransport())
+                {
+                    row.CommentOut = true;
+                    row.Comment += " - !!! on transport (NYI) !!!";
+                }
                 else
                     ++count;
 
@@ -164,9 +210,12 @@ namespace WowPacketParser.SQL.Builders
 
             var result = new StringBuilder();
 
-            // delete query for GUIDs
-            var delete = new QueryBuilder.SQLDelete(Tuple.Create("@OGUID+0", "@OGUID+" + --count), "guid", tableName);
-            result.Append(delete.Build());
+            if (count > 0)
+            {
+                // delete query for GUIDs
+                var delete = new QueryBuilder.SQLDelete(Tuple.Create("@OGUID+0", "@OGUID+" + --count), "guid", tableName);
+                result.Append(delete.Build());
+            }
 
             var sql = new QueryBuilder.SQLInsert(tableName, rows, withDelete: false);
             result.Append(sql.Build());

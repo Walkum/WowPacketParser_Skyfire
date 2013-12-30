@@ -76,8 +76,10 @@ namespace WowPacketParser.SQL
             /// <param name="noQuotes">If value is a string and this is set to true, value will not be 'quoted' (SQL variables)</param>
             public void AddValue(string field, object value, bool isFlag = false, bool noQuotes = false)
             {
-                if (value != null)
-                    _values.Add(new KeyValuePair<string, object>(SQLUtil.AddBackQuotes(field), SQLUtil.ToSQLValue(value, isFlag, noQuotes)));
+                if (value == null)
+                    value = "";
+
+                _values.Add(new KeyValuePair<string, object>(SQLUtil.AddBackQuotes(field), SQLUtil.ToSQLValue(value, isFlag, noQuotes)));
             }
 
             /// <summary>
@@ -269,7 +271,7 @@ namespace WowPacketParser.SQL
                 var count = 0;
                 foreach (var row in Rows)
                 {
-                    if (count >= MaxRowsPerInsert)
+                    if (count >= MaxRowsPerInsert && !_deleteDuplicates)
                     {
                         query.ReplaceLast(',', ';');
                         query.Append(InsertHeader);
@@ -284,7 +286,11 @@ namespace WowPacketParser.SQL
                 // This is easier to implement that comparing raw objects in each row
                 // and certainly faster. Imagine comparing 1k rows of <string, int, int, emote, YouGotIt>
                 if (_deleteDuplicates)
-                    return String.Join("\n", query.ToString().Split('\n').Distinct()); // Do not use Enviroment.NewLine
+                {
+                    var str = String.Join("\n", query.ToString().Split('\n').Distinct()); // Do not use Enviroment.NewLine
+                    query.Clear();
+                    query.Append(str);
+                }
 
                 query.ReplaceLast(',', ';');
 

@@ -1,4 +1,3 @@
-using System.Globalization;
 using WowPacketParser.Enums;
 using WowPacketParser.Misc;
 
@@ -11,7 +10,7 @@ namespace WowPacketParser.Parsing.Parsers
         public static void ReadClientAddonsList(ref Packet packet)
         {
             var decompCount = packet.ReadInt32();
-            packet = packet.Inflate(decompCount);
+            packet = packet.Inflate(decompCount, false);
 
             if (ClientVersion.AddedInVersion(ClientVersionBuild.V3_0_8_9464))
             {
@@ -21,9 +20,9 @@ namespace WowPacketParser.Parsing.Parsers
                 for (var i = 0; i < count; i++)
                 {
                     packet.ReadCString("Name", i);
-                    packet.ReadBoolean("Enabled", i);
-                    packet.ReadInt32("CRC", i);
-                    packet.ReadInt32("Unk Int32", i);
+                    packet.ReadBoolean("Uses public key", i);
+                    packet.ReadInt32("Public key CRC", i);
+                    packet.ReadInt32("URL file CRC", i);
                 }
 
                 packet.ReadTime("Time");
@@ -69,11 +68,8 @@ namespace WowPacketParser.Parsing.Parsers
 
                     if (usePublicKey)
                     {
-                        var pubKey = packet.ReadChars(256);
-                        packet.Write("[{0}] Public Key: ", i);
-
-                        foreach (var t in pubKey)
-                            packet.Write(t.ToString(CultureInfo.InvariantCulture));
+                        var pubKey = packet.ReadBytes(256);
+                        packet.WriteLine("[{0}] Name MD5: {1}", i, Utilities.ByteArrayToHexString(pubKey));
                     }
 
                     packet.ReadInt32("Unk Int32", i);
@@ -92,21 +88,21 @@ namespace WowPacketParser.Parsing.Parsers
                     packet.ReadInt32("ID", i);
 
                     var unkStr2 = packet.ReadBytes(16);
-                    packet.WriteLine("[{0}] Unk Hash 1: {1}", i, Utilities.ByteArrayToHexString(unkStr2));
+                    packet.WriteLine("[{0}] Name MD5: {1}", i, Utilities.ByteArrayToHexString(unkStr2));
 
                     var unkStr3 = packet.ReadBytes(16);
-                    packet.WriteLine("[{0}] Unk Hash 2: {1}", i, Utilities.ByteArrayToHexString(unkStr3));
+                    packet.WriteLine("[{0}] Version MD5: {1}", i, Utilities.ByteArrayToHexString(unkStr3));
 
-                    packet.ReadInt32("Unk Int32 3", i);
+                    packet.ReadTime("Time", i);
 
                     if (ClientVersion.AddedInVersion(ClientVersionBuild.V3_3_3a_11723))
-                        packet.ReadInt32("Unk Int32 4", i);
+                        packet.ReadInt32("Is banned", i);
                 }
             }
         }
 
-        // Changed on 4.3.2, bitshiffted
-        [Parser(Opcode.CMSG_ADDON_REGISTERED_PREFIXES, ClientVersionBuild.V4_1_0_13914, ClientVersionBuild.V4_3_2_15211)]
+        // Changed on 4.3.0, bitshifted
+        [Parser(Opcode.CMSG_ADDON_REGISTERED_PREFIXES, ClientVersionBuild.V4_1_0_13914, ClientVersionBuild.V4_3_0_15005)]
         public static void HandleAddonPrefixes(Packet packet)
         {
             var count = packet.ReadUInt32("Count");
@@ -114,7 +110,7 @@ namespace WowPacketParser.Parsing.Parsers
                 packet.ReadCString("Addon", i);
         }
 
-        [Parser(Opcode.CMSG_ADDON_REGISTERED_PREFIXES, ClientVersionBuild.V4_3_4_15595)]
+        [Parser(Opcode.CMSG_ADDON_REGISTERED_PREFIXES, ClientVersionBuild.V4_3_0_15005)]
         public static void HandleAddonPrefixes434(Packet packet)
         {
             var count = packet.ReadBits("Count", 25);
@@ -124,6 +120,11 @@ namespace WowPacketParser.Parsing.Parsers
 
             for (var i = 0; i < count; ++i)
                 packet.ReadWoWString("Addon", lengths[i], i);
+        }
+
+        [Parser(Opcode.CMSG_UNREGISTER_ALL_ADDON_PREFIXES)]
+        public static void HandleAddonNull(Packet packet)
+        {
         }
     }
 }

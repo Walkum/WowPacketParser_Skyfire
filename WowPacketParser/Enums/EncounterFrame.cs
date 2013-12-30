@@ -11,4 +11,19 @@ namespace WowPacketParser.Enums
         DisableObjective    = 6,
         SortEncounterList   = 7 // Unsure
     }
+
+    public enum EncounterFrame434
+    {
+        SetCombatResLimit   = 0,
+        ResetCombatResLimit = 1,
+        Engage              = 2,
+        Disengage           = 3,
+        UpdatePriority      = 4,
+        AddTimer            = 5,
+        EnableObjective     = 6,
+        UpdateObjective     = 7,
+        DisableObjective    = 8,
+        SortEncounterList   = 9,
+        AddCombatResLimit   = 10
+    }
 }

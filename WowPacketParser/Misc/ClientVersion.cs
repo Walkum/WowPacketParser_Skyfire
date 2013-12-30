@@ -1,6 +1,11 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
+using System.IO;
+using System.Reflection;
 using WowPacketParser.Enums;
+using WowPacketParser.Enums.Version;
+using WowPacketParser.Parsing;
 
 namespace WowPacketParser.Misc
 {
@@ -61,15 +66,116 @@ namespace WowPacketParser.Misc
             new KeyValuePair<ClientVersionBuild, DateTime>(ClientVersionBuild.V4_2_0a_14480, new DateTime(2011, 9, 8)),
             new KeyValuePair<ClientVersionBuild, DateTime>(ClientVersionBuild.V4_2_2_14545, new DateTime(2011, 9, 30)),
             new KeyValuePair<ClientVersionBuild, DateTime>(ClientVersionBuild.V4_3_0_15005, new DateTime(2011, 11, 30)),
-            new KeyValuePair<ClientVersionBuild, DateTime>(ClientVersionBuild.V4_3_0_15050, new DateTime(2011, 12, 2)),
+            new KeyValuePair<ClientVersionBuild, DateTime>(ClientVersionBuild.V4_3_0a_15050, new DateTime(2011, 12, 2)),
             new KeyValuePair<ClientVersionBuild, DateTime>(ClientVersionBuild.V4_3_2_15211, new DateTime(2012, 1, 31)),
             new KeyValuePair<ClientVersionBuild, DateTime>(ClientVersionBuild.V4_3_3_15354, new DateTime(2012, 2, 28)),
-            new KeyValuePair<ClientVersionBuild, DateTime>(ClientVersionBuild.V4_3_4_15595, new DateTime(2012, 4, 17))
+            new KeyValuePair<ClientVersionBuild, DateTime>(ClientVersionBuild.V4_3_4_15595, new DateTime(2012, 4, 17)),
+            new KeyValuePair<ClientVersionBuild, DateTime>(ClientVersionBuild.V5_0_4_16016, new DateTime(2012, 8, 28)),
+            new KeyValuePair<ClientVersionBuild, DateTime>(ClientVersionBuild.V5_0_5_16048, new DateTime(2012, 9, 11)),
+            new KeyValuePair<ClientVersionBuild, DateTime>(ClientVersionBuild.V5_0_5a_16057, new DateTime(2012, 9, 13)),
+            new KeyValuePair<ClientVersionBuild, DateTime>(ClientVersionBuild.V5_0_5b_16135, new DateTime(2012, 10, 14)),
+            new KeyValuePair<ClientVersionBuild, DateTime>(ClientVersionBuild.V5_1_0_16309, new DateTime(2012, 11, 13)),
+            new KeyValuePair<ClientVersionBuild, DateTime>(ClientVersionBuild.V5_1_0a_16357, new DateTime(2012, 12, 3)),
+            new KeyValuePair<ClientVersionBuild, DateTime>(ClientVersionBuild.V5_2_0_16650, new DateTime(2013, 02, 26)),
+            new KeyValuePair<ClientVersionBuild, DateTime>(ClientVersionBuild.V5_2_0_16669, new DateTime(2013, 03, 06)),
+            new KeyValuePair<ClientVersionBuild, DateTime>(ClientVersionBuild.V5_2_0_16683, new DateTime(2013, 03, 08)),
+            new KeyValuePair<ClientVersionBuild, DateTime>(ClientVersionBuild.V5_2_0_16685, new DateTime(2013, 03, 11)),
+            new KeyValuePair<ClientVersionBuild, DateTime>(ClientVersionBuild.V5_2_0_16701, new DateTime(2013, 03, 14)),
+            new KeyValuePair<ClientVersionBuild, DateTime>(ClientVersionBuild.V5_2_0_16709, new DateTime(2013, 03, 14)),
+            new KeyValuePair<ClientVersionBuild, DateTime>(ClientVersionBuild.V5_2_0_16716, new DateTime(2013, 03, 15)),
+            new KeyValuePair<ClientVersionBuild, DateTime>(ClientVersionBuild.V5_2_0_16733, new DateTime(2013, 03, 19)),
+            new KeyValuePair<ClientVersionBuild, DateTime>(ClientVersionBuild.V5_2_0_16769, new DateTime(2013, 03, 25)),
+            new KeyValuePair<ClientVersionBuild, DateTime>(ClientVersionBuild.V5_2_0_16826, new DateTime(2013, 04, 08)),
+            new KeyValuePair<ClientVersionBuild, DateTime>(ClientVersionBuild.V5_3_0_16981, new DateTime(2013, 05, 21)),
+            new KeyValuePair<ClientVersionBuild, DateTime>(ClientVersionBuild.V5_3_0_16983, new DateTime(2013, 05, 21)),
+            new KeyValuePair<ClientVersionBuild, DateTime>(ClientVersionBuild.V5_3_0_16992, new DateTime(2013, 05, 23)),
+            new KeyValuePair<ClientVersionBuild, DateTime>(ClientVersionBuild.V5_3_0_17055, new DateTime(2013, 06, 10)),
+            new KeyValuePair<ClientVersionBuild, DateTime>(ClientVersionBuild.V5_3_0_17116, new DateTime(2013, 06, 21)),
+            new KeyValuePair<ClientVersionBuild, DateTime>(ClientVersionBuild.V5_3_0_17128, new DateTime(2013, 06, 26)),
+            new KeyValuePair<ClientVersionBuild, DateTime>(ClientVersionBuild.V5_4_1_17538, new DateTime(2013, 10, 29)),
+            new KeyValuePair<ClientVersionBuild, DateTime>(ClientVersionBuild.V5_4_2_17658, new DateTime(2013, 12, 10))
         };
 
         private static ClientType _expansion;
 
         public static ClientVersionBuild Build { get; private set; }
+
+        // Returns the build that will define opcodes/updatefields/handlers for given Build
+        public static ClientVersionBuild VersionDefiningBuild
+        {
+            get
+            {
+                switch (Build)
+                {
+                    case ClientVersionBuild.V2_4_3_8606:
+                    case ClientVersionBuild.V3_0_2_9056:
+                    case ClientVersionBuild.V3_0_3_9183:
+                    case ClientVersionBuild.V3_0_8_9464:
+                    case ClientVersionBuild.V3_0_8a_9506:
+                    case ClientVersionBuild.V3_0_9_9551:
+                    case ClientVersionBuild.V3_1_0_9767:
+                    case ClientVersionBuild.V3_1_1_9806:
+                    case ClientVersionBuild.V3_1_1a_9835:
+                    case ClientVersionBuild.V3_1_2_9901:
+                    case ClientVersionBuild.V3_1_3_9947:
+                    case ClientVersionBuild.V3_2_0_10192:
+                    case ClientVersionBuild.V3_2_0a_10314:
+                    case ClientVersionBuild.V3_2_2_10482:
+                    case ClientVersionBuild.V3_2_2a_10505:
+                    case ClientVersionBuild.V3_3_0_10958:
+                    case ClientVersionBuild.V3_3_0a_11159:
+                        return ClientVersionBuild.V3_3_0a_11159;
+                    case ClientVersionBuild.V3_3_3_11685:
+                    case ClientVersionBuild.V3_3_3a_11723:
+                    case ClientVersionBuild.V3_3_5a_12340:
+                        return ClientVersionBuild.V3_3_5a_12340;
+                    case ClientVersionBuild.V4_0_6_13596:
+                    case ClientVersionBuild.V4_0_6a_13623:
+                    case ClientVersionBuild.V4_1_0_13914:
+                    case ClientVersionBuild.V4_1_0a_14007:
+                        return ClientVersionBuild.V4_0_6_13596;
+                    case ClientVersionBuild.V4_2_0_14333:
+                    case ClientVersionBuild.V4_2_0a_14480:
+                        return ClientVersionBuild.V4_2_0_14333;
+                    case ClientVersionBuild.V4_3_0_15005:
+                    case ClientVersionBuild.V4_3_0a_15050:
+                        return ClientVersionBuild.V4_3_0a_15050;
+                    case ClientVersionBuild.V5_0_5_16048:
+                    case ClientVersionBuild.V5_0_5a_16057:
+                    case ClientVersionBuild.V5_0_5b_16135:
+                        return ClientVersionBuild.V5_0_5_16048;
+                    case ClientVersionBuild.V5_1_0_16309:
+                    case ClientVersionBuild.V5_1_0a_16357:
+                        return ClientVersionBuild.V5_1_0_16309;
+                    case ClientVersionBuild.V5_2_0_16650:
+                    case ClientVersionBuild.V5_2_0_16669:
+                    case ClientVersionBuild.V5_2_0_16683:
+                    case ClientVersionBuild.V5_2_0_16685:
+                    case ClientVersionBuild.V5_2_0_16701:
+                    case ClientVersionBuild.V5_2_0_16709:
+                    case ClientVersionBuild.V5_2_0_16716:
+                    case ClientVersionBuild.V5_2_0_16733:
+                    case ClientVersionBuild.V5_2_0_16769:
+                    case ClientVersionBuild.V5_2_0_16826:
+                        return ClientVersionBuild.V5_2_0_16826;
+                    case ClientVersionBuild.V5_3_0_16981:
+                    case ClientVersionBuild.V5_3_0_16983:
+                    case ClientVersionBuild.V5_3_0_16992:
+                    case ClientVersionBuild.V5_3_0_17055:
+                    case ClientVersionBuild.V5_3_0_17116:
+                    case ClientVersionBuild.V5_3_0_17128:
+                        return ClientVersionBuild.V5_3_0_16981;
+                    case ClientVersionBuild.V5_4_1_17538:
+                        return ClientVersionBuild.V5_4_1_17538;
+                    case ClientVersionBuild.V5_4_2_17658:
+                    case ClientVersionBuild.V5_4_2_17688:
+                        return ClientVersionBuild.V5_4_2_17658;
+                    default:
+                        return Build;
+                }
+            }
+            private set { }
+        }
 
         public static int BuildInt
         {
@@ -83,6 +189,8 @@ namespace WowPacketParser.Misc
 
         private static ClientType GetExpansion(ClientVersionBuild build)
         {
+            if (build >= ClientVersionBuild.V5_0_4_16016)
+                return ClientType.MistsOfPandaria;
             if (build >= ClientVersionBuild.V4_0_3_13329)
                 return ClientType.Cataclysm;
             if (build >= ClientVersionBuild.V3_0_3_9183)
@@ -107,8 +215,27 @@ namespace WowPacketParser.Misc
 
         public static void SetVersion(ClientVersionBuild version)
         {
+            if (Build == version)
+                return;
+
             Build = version;
             _expansion = GetExpansion(version);
+
+            Opcodes.InitializeOpcodeDictionary();
+            Handler.ResetHandlers();
+            UpdateFields.ResetUFDictionaries();
+            try
+            {
+                var asm = Assembly.LoadFrom(string.Format(AppDomain.CurrentDomain.BaseDirectory + "/" + "WowPacketParserModule.{0}.dll", ClientVersion.VersionDefiningBuild));
+                Trace.WriteLine(string.Format("Loading module WowPacketParserModule.{0}.dll", ClientVersion.VersionDefiningBuild));
+                Handler.LoadHandlers(asm, ClientVersion.VersionDefiningBuild);
+                UpdateFields.LoadUFDictionaries(asm, ClientVersion.VersionDefiningBuild);
+            }
+            catch (FileNotFoundException)
+            {
+                // No dll found, try to load the data in the executable itself
+                UpdateFields.LoadUFDictionaries(Assembly.GetExecutingAssembly(), ClientVersion.Build);
+            }
         }
 
         public static void SetVersion(DateTime time)

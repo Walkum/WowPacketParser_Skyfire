@@ -8,6 +8,7 @@ using WowPacketParser.Enums;
 using WowPacketParser.Loading;
 using WowPacketParser.Misc;
 using WowPacketParser.SQL;
+using WowPacketParser.Parsing.Parsers;
 
 namespace WowPacketParser
 {
@@ -46,7 +47,8 @@ namespace WowPacketParser
                 throw new ConstraintException("FilterPacketNumLow must be less or equal than FilterPacketNumHigh");
 
             // Disable DB when we don't need its data (dumping to a binary file)
-            if (Settings.DumpFormat == DumpFormatType.Pkt)
+            if (Settings.DumpFormat == DumpFormatType.None || Settings.DumpFormat == DumpFormatType.Pkt ||
+                Settings.DumpFormat == DumpFormatType.PktSplit || Settings.DumpFormat == DumpFormatType.SniffDataOnly)
             {
                 SQLConnector.Enabled = false;
                 SSHTunnel.Enabled = false;
@@ -59,10 +61,13 @@ namespace WowPacketParser
             var count = 0;
             foreach (var file in files)
             {
+                SessionHandler.z_streams.Clear();
                 ClientVersion.SetVersion(Settings.ClientBuild);
-                new SniffFile(file, Settings.DumpFormat, Settings.SplitOutput, Tuple.Create(++count, files.Count),
-                              Settings.SQLOutput).ProcessFile();
+                new SniffFile(file, Settings.DumpFormat, Tuple.Create(++count, files.Count)).ProcessFile();
             }
+
+            if (!String.IsNullOrWhiteSpace(Settings.SQLFileName))
+                Builder.DumpSQL("Dumping global sql", Settings.SQLFileName, "# multiple files\n");
 
             SQLConnector.Disconnect();
             SSHTunnel.Disconnect();

@@ -446,14 +446,14 @@ namespace WowPacketParser.Misc
         private byte _bitpos = 8;
         private byte _curbitval;
 
-        public bool ReadBit(string name, params int[] values)
+        public Bit ReadBit(string name, params int[] values)
         {
             var bit = ReadBit();
             WriteLine("{0}{1}: {2}", GetIndexString(values), name, bit ? "1" : "0");
             return bit;
         }
 
-        public bool ReadBit()
+        public Bit ReadBit()
         {
             ++_bitpos;
 
@@ -514,6 +514,12 @@ namespace WowPacketParser.Misc
             return bytes;
         }
 
+        public void StartBitStream(byte[] stream, params int[] values)
+        {
+            foreach (var value in values)
+                stream[value] = (byte)(ReadBit() ? 1 : 0);
+        }
+
         public byte ParseBitStream(byte[] stream, byte value)
         {
             if (stream[value] != 0)
@@ -538,12 +544,19 @@ namespace WowPacketParser.Misc
             return tempBytes;
         }
 
-        public byte ParseBitStream(byte[] stream, string name, byte value)
+        public byte ReadXORByte(byte[] stream, byte value)
         {
             if (stream[value] != 0)
-                return stream[value] ^= ReadByte(name);
+                return stream[value] ^= ReadByte();
 
             return 0;
+        }
+
+        public void ReadXORBytes(byte[] stream, params byte[] values)
+        {
+            foreach (var value in values)
+                if (stream[value] != 0)
+                    stream[value] ^= ReadByte();
         }
 
         public string WriteGuid(byte[] stream)

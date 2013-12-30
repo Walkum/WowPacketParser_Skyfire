@@ -3,6 +3,8 @@ using System.IO;
 using WowPacketParser.Enums;
 using WowPacketParser.Enums.Version;
 using WowPacketParser.Misc;
+using WowPacketParser.Store;
+using WowPacketParser.Store.Objects;
 
 namespace WowPacketParser.Parsing.Parsers
 {
@@ -150,15 +152,15 @@ namespace WowPacketParser.Parsing.Parsers
                         case SpellEffect.PowerBurn:
                         {
                             packet.ReadPackedGuid("Target GUID", index, i, j);
-                            packet.ReadInt32("Unknown Int32", index, i, j);
-                            packet.ReadInt32("Unknown Int32", index, i, j);
-                            packet.ReadSingle("Unknown Float", index, i, j);
+                            packet.ReadInt32("Power taken", index, i, j);
+                            packet.ReadInt32("Power type", index, i, j);
+                            packet.ReadSingle("Multiplier", index, i, j);
                             break;
                         }
                         case SpellEffect.AddExtraAttacks:
                         {
                             packet.ReadPackedGuid("Target GUID", index, i, j);
-                            packet.ReadInt32("Unknown Int32", index, i, j);
+                            packet.ReadInt32("Amount", index, i, j);
                             break;
                         }
                         case SpellEffect.InterruptCast:
@@ -170,8 +172,8 @@ namespace WowPacketParser.Parsing.Parsers
                         case SpellEffect.DurabilityDamage:
                         {
                             packet.ReadPackedGuid("Target GUID", index, i, j);
-                            packet.ReadInt32("Unknown Int32", index, i, j);
-                            packet.ReadInt32("Unknown Int32", index, i, j);
+                            packet.ReadEntryWithName<Int32>(StoreNameType.Item, "Item", index, i, j);
+                            packet.ReadInt32("Slot", index, i, j);
                             break;
                         }
                         case SpellEffect.OpenLock:
@@ -196,8 +198,14 @@ namespace WowPacketParser.Parsing.Parsers
                         case SpellEffect.SummonObjectSlot2:
                         case SpellEffect.SummonObjectSlot3:
                         case SpellEffect.SummonObjectSlot4:
+                        case SpellEffect.Unk171:
                         {
-                            packet.ReadPackedGuid("Summoned GUID", index, i, j);
+                            var guid = packet.ReadPackedGuid("Summoned GUID", index, i, j);
+
+                            WoWObject obj;
+                            if (Storage.Objects.TryGetValue(guid, out obj))
+                                obj.ForceTemporarySpawn = true;
+
                             break;
                         }
                         case SpellEffect.FeedPet:
@@ -396,7 +404,7 @@ namespace WowPacketParser.Parsing.Parsers
             packet.ReadInt32("SpellSchoolMask");
 
             if (ClientVersion.AddedInVersion(ClientVersionBuild.V4_0_6_13596))
-                packet.ReadInt32("Unknown Int32");
+                packet.ReadInt32("Resisted Damage");
         }
     }
 }

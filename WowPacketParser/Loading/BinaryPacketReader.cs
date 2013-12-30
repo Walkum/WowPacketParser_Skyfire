@@ -107,8 +107,7 @@ namespace WowPacketParser.Loading
 
         static void SetBuild(uint build)
         {
-            if (ClientVersion.IsUndefined())
-                ClientVersion.SetVersion((ClientVersionBuild)build);
+            ClientVersion.SetVersion((ClientVersionBuild)build);
         }
 
         public bool CanRead()
@@ -123,6 +122,7 @@ namespace WowPacketParser.Loading
             DateTime time;
             Direction direction;
             byte[] data;
+            int cIndex = 0;
 
             if (_sniffType == SniffType.Pkt)
             {
@@ -163,7 +163,7 @@ namespace WowPacketParser.Loading
                         }
                         else
                         {
-                            _reader.ReadUInt32(); // session id
+                            cIndex = (int)_reader.ReadUInt32(); // session id, connection index
                             var tickCount = _reader.ReadUInt32();
                             time = _startTime.AddMilliseconds(tickCount - _startTickCount);
                         }
@@ -186,6 +186,14 @@ namespace WowPacketParser.Loading
                     }
                 }
             }
+            else if (_sniffType == SniffType.Ari) // Ari
+            {
+                opcode = _reader.ReadInt32();
+                direction = (Direction)_reader.ReadByte();
+                length = _reader.ReadInt32();
+                time = Utilities.GetDateTimeFromUnixTime(_reader.ReadInt32());
+                data = _reader.ReadBytes(length);
+            }
             else // bin
             {
                 opcode = _reader.ReadInt32();
@@ -197,10 +205,11 @@ namespace WowPacketParser.Loading
 
             // ignore opcodes that were not "decrypted" (usually because of
             // a missing session key) (only applicable to 335 or earlier)
-            if (opcode >= 1312 && ClientVersion.Build <= ClientVersionBuild.V3_3_5a_12340)
+            if (opcode >= 1312 && (ClientVersion.Build <= ClientVersionBuild.V3_3_5a_12340 && ClientVersion.Build != ClientVersionBuild.Zero))
                 return null;
 
-            var packet = new Packet(data, opcode, time, direction, number, fileName);
+            var packet = new Packet(data, opcode, time, direction, number, Path.GetFileName(fileName));
+            packet.ConnectionIndex = cIndex;
             return packet;
         }
 

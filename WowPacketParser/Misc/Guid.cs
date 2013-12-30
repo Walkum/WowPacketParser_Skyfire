@@ -7,6 +7,8 @@ namespace WowPacketParser.Misc
     {
         public readonly ulong Full;
 
+        public static Guid Empty;
+
         public Guid(ulong id)
             : this()
         {
